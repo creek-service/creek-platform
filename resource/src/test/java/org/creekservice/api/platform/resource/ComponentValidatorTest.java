@@ -36,6 +36,7 @@ import org.creekservice.api.platform.metadata.ComponentInternal;
 import org.creekservice.api.platform.metadata.ComponentOutput;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.SharedResource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -135,7 +136,7 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowIfResourcesOverride() {
         // Given:
-        component = new BadDescriptor();
+        component = new BadComponentDescriptor();
 
         // When:
         final Exception e =
@@ -145,7 +146,6 @@ class ComponentValidatorTest {
         assertThat(
                 e.getMessage(),
                 containsString("should not override resources() method, component: bad"));
-        assertThat(e.getMessage(), containsString(component.name()));
     }
 
     @Test
@@ -158,16 +158,16 @@ class ComponentValidatorTest {
                 assertThrows(RuntimeException.class, () -> validator.validate(component));
 
         // Then:
-        assertThat(
-                e.getMessage(),
-                containsString("contains null resource, component: " + component.name()));
+        assertThat(e.getMessage(), containsString("contains null resource, component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 
     @Test
     void shouldThrowIfAggregateExposesInternals() {
         // Given:
-        when(aggregate.internals()).thenReturn(List.of(mock(ComponentInternal.class)));
+        when(aggregate.internals())
+                .thenReturn(
+                        List.of(mock(ComponentInternal.class, withSettings().name("internal"))));
 
         // When:
         final Exception e =
@@ -175,7 +175,9 @@ class ComponentValidatorTest {
 
         // Then:
         assertThat(
-                e.getMessage(), containsString("Aggregate should not expose internal resources."));
+                e.getMessage(),
+                containsString(
+                        "Aggregate should not expose internal resources. internals: [internal], component: bob"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
@@ -183,14 +185,38 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowIfAggregateExposesNonOwnedResources() {
         // Given:
-        when(aggregate.resources()).thenReturn(Stream.of(mock(ComponentInput.class)));
+        when(aggregate.resources())
+                .thenReturn(Stream.of(mock(ComponentInput.class, withSettings().name("unowned"))));
 
         // When:
         final Exception e =
                 assertThrows(RuntimeException.class, () -> validator.validate(aggregate));
 
         // Then:
-        assertThat(e.getMessage(), containsString("Aggregate should only expose OwnedResource."));
+        assertThat(
+                e.getMessage(),
+                containsString(
+                        "Aggregate should only expose OwnedResource. not_owned: [unowned], component: bob"));
+        assertThat(e.getMessage(), containsString("component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
+    void shouldThrowIfResourceImplementsMultipleInitializationMarkers() {
+        // Given:
+        when(component.resources()).thenReturn(Stream.of(mock(BadResourceDescriptor.class)));
+
+        // When:
+        final Exception e =
+                assertThrows(RuntimeException.class, () -> validator.validate(component));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                containsString(
+                        "resource can implement at-most one ResourceInitialization marker interface, "
+                                + "but was: [OwnedResource, SharedResource], "
+                                + "resource_type: ComponentValidatorTest$BadResourceDescriptor"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
@@ -200,7 +226,7 @@ class ComponentValidatorTest {
         validator.validate(component);
     }
 
-    private static final class BadDescriptor implements ComponentDescriptor {
+    private static final class BadComponentDescriptor implements ComponentDescriptor {
         @Override
         public String name() {
             return "bad";
@@ -211,4 +237,7 @@ class ComponentValidatorTest {
             return ComponentDescriptor.super.resources();
         }
     }
+
+    private interface BadResourceDescriptor
+            extends ResourceDescriptor, SharedResource, OwnedResource {}
 }

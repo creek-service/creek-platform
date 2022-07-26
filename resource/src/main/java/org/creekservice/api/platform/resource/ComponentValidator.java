@@ -18,15 +18,18 @@ package org.creekservice.api.platform.resource;
 
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.platform.metadata.AggregateDescriptor;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.ResourceInitialization;
 
 public final class ComponentValidator {
 
@@ -107,11 +110,49 @@ public final class ComponentValidator {
         if (resource == null) {
             throw new InvalidDescriptorException("contains null resource", component);
         }
+
+        final List<String> initialisation =
+                types(resource.getClass())
+                        .filter(ComponentValidator::isResourceInitializationMarkerInterface)
+                        .map(Class::getSimpleName)
+                        .distinct()
+                        .sorted()
+                        .collect(Collectors.toList());
+        if (initialisation.size() > 1) {
+            throw new InvalidDescriptorException(
+                    "resource can implement at-most one ResourceInitialization marker interface, but was: "
+                            + initialisation,
+                    resource,
+                    component);
+        }
+    }
+
+    private static boolean isResourceInitializationMarkerInterface(final Class<?> type) {
+        final Class<?>[] interfaces = type.getInterfaces();
+        return interfaces.length == 1 && interfaces[0].equals(ResourceInitialization.class);
+    }
+
+    private static Stream<Class<?>> types(final Class<?> type) {
+        final Class<?> superclass = type.getSuperclass();
+
+        final Stream<Class<?>> types = superclass == null ? Stream.of() : types(superclass);
+
+        final Stream<Class<?>> interfaces =
+                Arrays.stream(type.getInterfaces()).flatMap(ComponentValidator::types);
+
+        return Stream.concat(Stream.of(type), Stream.concat(types, interfaces));
     }
 
     private static final class InvalidDescriptorException extends RuntimeException {
         InvalidDescriptorException(final String msg, final ComponentDescriptor component) {
             this(msg, component, true);
+        }
+
+        InvalidDescriptorException(
+                final String msg,
+                final ResourceDescriptor resource,
+                final ComponentDescriptor component) {
+            this(msg + ", resource_type: " + resource.getClass().getSimpleName(), component, true);
         }
 
         InvalidDescriptorException(
