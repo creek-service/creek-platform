@@ -21,12 +21,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.matchesRegex;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.quality.Strictness.LENIENT;
 
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.creekservice.api.platform.metadata.AggregateDescriptor;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
+import org.creekservice.api.platform.metadata.ComponentInput;
+import org.creekservice.api.platform.metadata.ComponentInternal;
+import org.creekservice.api.platform.metadata.ComponentOutput;
+import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,11 +53,37 @@ class ComponentValidatorTest {
     @Mock(name = "jane")
     private ComponentDescriptor component;
 
+    @Mock(name = "jane")
+    private AggregateDescriptor aggregate;
+
     private final ComponentValidator validator = componentValidator();
 
     @BeforeEach
     void setUp() {
         when(component.name()).thenReturn("bob");
+        when(aggregate.name()).thenReturn("bob");
+
+        when(component.inputs())
+                .thenReturn(
+                        List.of(
+                                mock(ComponentInput.class),
+                                mock(
+                                        ComponentInput.class,
+                                        withSettings().extraInterfaces(OwnedResource.class))));
+        when(component.internals())
+                .thenReturn(
+                        List.of(
+                                mock(ComponentInternal.class),
+                                mock(
+                                        ComponentInternal.class,
+                                        withSettings().extraInterfaces(OwnedResource.class))));
+        when(component.outputs())
+                .thenReturn(
+                        List.of(
+                                mock(ComponentOutput.class),
+                                mock(
+                                        ComponentOutput.class,
+                                        withSettings().extraInterfaces(OwnedResource.class))));
     }
 
     @Test
@@ -62,8 +96,8 @@ class ComponentValidatorTest {
                 assertThrows(RuntimeException.class, () -> validator.validate(component));
 
         // Then:
-        assertThat(e.getMessage(), containsString("name can not be null or blank, component"));
-        assertThat(e.getMessage(), containsString("jane"));
+        assertThat(
+                e.getMessage(), containsString("name can not be null or blank, component: jane"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 
@@ -77,8 +111,8 @@ class ComponentValidatorTest {
                 assertThrows(RuntimeException.class, () -> validator.validate(component));
 
         // Then:
-        assertThat(e.getMessage(), containsString("name can not be null or blank, component"));
-        assertThat(e.getMessage(), containsString("jane"));
+        assertThat(
+                e.getMessage(), containsString("name can not be null or blank, component: jane"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 
@@ -94,8 +128,7 @@ class ComponentValidatorTest {
         // Then:
         assertThat(
                 e.getMessage(),
-                containsString("name can not contain control characters, component"));
-        assertThat(e.getMessage(), containsString("bob\nbob"));
+                containsString("name can not contain control characters, component: bob\nbob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 
@@ -111,7 +144,7 @@ class ComponentValidatorTest {
         // Then:
         assertThat(
                 e.getMessage(),
-                containsString("should not override resources() method, component"));
+                containsString("should not override resources() method, component: bad"));
         assertThat(e.getMessage(), containsString(component.name()));
     }
 
@@ -125,8 +158,40 @@ class ComponentValidatorTest {
                 assertThrows(RuntimeException.class, () -> validator.validate(component));
 
         // Then:
-        assertThat(e.getMessage(), containsString("contains null resource, component"));
-        assertThat(e.getMessage(), containsString(component.name()));
+        assertThat(
+                e.getMessage(),
+                containsString("contains null resource, component: " + component.name()));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
+    void shouldThrowIfAggregateExposesInternals() {
+        // Given:
+        when(aggregate.internals()).thenReturn(List.of(mock(ComponentInternal.class)));
+
+        // When:
+        final Exception e =
+                assertThrows(RuntimeException.class, () -> validator.validate(aggregate));
+
+        // Then:
+        assertThat(
+                e.getMessage(), containsString("Aggregate should not expose internal resources."));
+        assertThat(e.getMessage(), containsString("component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
+    void shouldThrowIfAggregateExposesNonOwnedResources() {
+        // Given:
+        when(aggregate.resources()).thenReturn(Stream.of(mock(ComponentInput.class)));
+
+        // When:
+        final Exception e =
+                assertThrows(RuntimeException.class, () -> validator.validate(aggregate));
+
+        // Then:
+        assertThat(e.getMessage(), containsString("Aggregate should only expose OwnedResource."));
+        assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 

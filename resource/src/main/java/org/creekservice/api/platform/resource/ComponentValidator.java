@@ -21,8 +21,11 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.creekservice.api.base.type.CodeLocation;
+import org.creekservice.api.platform.metadata.AggregateDescriptor;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
+import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 
 public final class ComponentValidator {
@@ -59,14 +62,31 @@ public final class ComponentValidator {
     }
 
     private void validateComponentResources(final ComponentDescriptor component) {
+        if (component instanceof AggregateDescriptor) {
+            validateAggregate((AggregateDescriptor) component);
+        }
         validateResourcesMethod(component);
         component.resources().forEach(r -> validateResource(r, component));
     }
 
-    private void validateResource(
-            final ResourceDescriptor resource, final ComponentDescriptor component) {
-        if (resource == null) {
-            throw new InvalidDescriptorException("contains null resource", component);
+    private void validateAggregate(final AggregateDescriptor component) {
+        if (!component.internals().isEmpty()) {
+            throw new InvalidDescriptorException(
+                    "Aggregate should not expose internal resources. internals: "
+                            + component.internals(),
+                    component);
+        }
+
+        final List<ResourceDescriptor> notOwned =
+                component
+                        .resources()
+                        .filter(r -> !(r instanceof OwnedResource))
+                        .collect(Collectors.toList());
+
+        if (!notOwned.isEmpty()) {
+            throw new InvalidDescriptorException(
+                    "Aggregate should only expose OwnedResource. not_owned: " + notOwned,
+                    component);
         }
     }
 
@@ -82,6 +102,13 @@ public final class ComponentValidator {
         }
     }
 
+    private void validateResource(
+            final ResourceDescriptor resource, final ComponentDescriptor component) {
+        if (resource == null) {
+            throw new InvalidDescriptorException("contains null resource", component);
+        }
+    }
+
     private static final class InvalidDescriptorException extends RuntimeException {
         InvalidDescriptorException(final String msg, final ComponentDescriptor component) {
             this(msg, component, true);
@@ -93,10 +120,11 @@ public final class ComponentValidator {
                 final boolean useComponentName) {
             super(
                     msg
-                            + ", component ("
+                            + ", component: "
+                            + (useComponentName ? component.name() : component.toString())
+                            + " ("
                             + CodeLocation.codeLocation(component)
-                            + "): "
-                            + (useComponentName ? component.name() : component.toString()));
+                            + ")");
         }
     }
 }

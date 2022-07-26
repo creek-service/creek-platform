@@ -20,7 +20,7 @@ environment variables to set during testing.
 Each aggregate should provide an implementation of [`AggregateDescriptor`](src/main/java/org/creekservice/api/platform/metadata/AggregateDescriptor.java)
 to define their public [inputs](#inputs) and [outputs](#outputs).
 
-## Descriptors
+## Component Descriptors
 
 Descriptors define, among other things, the components [inputs](#inputs), [internals](#internals), [outputs](#outputs):
 
