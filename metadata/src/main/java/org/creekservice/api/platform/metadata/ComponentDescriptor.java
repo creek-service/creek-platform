@@ -37,7 +37,10 @@ import java.util.stream.Stream;
  */
 public interface ComponentDescriptor {
 
-    /** @return the unique name of the component within the platform */
+    /**
+     * @return the unique name of the component within the platform. Can not be {@code null}, blank
+     *     or contain control characters.
+     */
     String name();
 
     /** @return the inputs to the component, e.g. Kafka topics it consumes. */
@@ -56,6 +59,10 @@ public interface ComponentDescriptor {
     }
 
     /**
+     * Get all resources.
+     *
+     * <p>Do not override this implementation.
+     *
      * @return {@link Stream} of component {@link #inputs}, {@link #internals} and {@link #outputs}
      *     resources.
      */
