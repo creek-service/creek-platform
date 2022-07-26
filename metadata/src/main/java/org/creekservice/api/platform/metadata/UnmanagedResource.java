@@ -21,4 +21,4 @@ package org.creekservice.api.platform.metadata;
  *
  * <p>See {@link ResourceInitialization} for more info.
  */
-public interface OwnedResource extends ResourceInitialization {}
+public interface UnmanagedResource extends ResourceInitialization {}
