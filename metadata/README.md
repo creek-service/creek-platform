@@ -105,4 +105,4 @@ an unowned resource, i.e. a resource owned by another component that this servic
 For example, an upstream service defines an owned Kafka output topic that a service consumes. The service's descriptor
 will import the upstream service's topic descriptor and obtain an _unowned_ input topic descriptor from it. 
 
-[1] https://github.com/creek-service/creek-kafka/tree/main/metadata
+[1]: https://github.com/creek-service/creek-kafka/tree/main/metadata

@@ -30,6 +30,7 @@ import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ResourceInitialization;
+import org.creekservice.api.platform.metadata.ServiceDescriptor;
 
 public final class ComponentValidator {
 
@@ -51,6 +52,23 @@ public final class ComponentValidator {
 
     private void validateComponent(final ComponentDescriptor component) {
         validateComponentName(component);
+
+        final boolean isAggregate = component instanceof AggregateDescriptor;
+        final boolean isService = component instanceof ServiceDescriptor;
+        if (isAggregate && isService) {
+            throw new InvalidDescriptorException(
+                    "descriptor is both aggregate and service descriptor", component);
+        }
+        if (!isAggregate && !isService) {
+            throw new InvalidDescriptorException(
+                    "descriptor is neither aggregate and service descriptor", component);
+        }
+        if (component instanceof AggregateDescriptor) {
+            validateAggregate((AggregateDescriptor) component);
+        } else {
+            validateService((ServiceDescriptor) component);
+        }
+
         validateComponentResources(component);
     }
 
@@ -65,9 +83,6 @@ public final class ComponentValidator {
     }
 
     private void validateComponentResources(final ComponentDescriptor component) {
-        if (component instanceof AggregateDescriptor) {
-            validateAggregate((AggregateDescriptor) component);
-        }
         validateResourcesMethod(component);
         component.resources().forEach(r -> validateResource(r, component));
     }
@@ -90,6 +105,16 @@ public final class ComponentValidator {
             throw new InvalidDescriptorException(
                     "Aggregate should only expose OwnedResource. not_owned: " + notOwned,
                     component);
+        }
+    }
+
+    private void validateService(final ServiceDescriptor component) {
+        if (component.dockerImage() == null || component.dockerImage().isBlank()) {
+            throw new InvalidDescriptorException("dockerImage can not be null or blank", component);
+        }
+
+        if (component.testEnvironment() == null) {
+            throw new InvalidDescriptorException("testEnvironment can not be null", component);
         }
     }
 
