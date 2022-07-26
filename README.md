@@ -10,3 +10,6 @@ The base of the Creek platform.
 ## Modules
 
 * [metadata](metadata): A dependency-free library that defines the types used to describe platform components.
+
+
+// Todo: delete creek-platform-metadata repo

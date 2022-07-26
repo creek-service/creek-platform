@@ -14,14 +14,7 @@
  * limitations under the License.
  */
 
-package org.creekservice.internal.example;
+package org.creekservice.api.platform.metadata;
 
-
-import org.creekservice.api.example.Example;
-
-public final class ExampleImpl implements Example {
-    @Override
-    public boolean getTrue() {
-        return true;
-    }
-}
+/** Marker interface of component outputs. */
+public interface ComponentOutput extends ResourceDescriptor {}
