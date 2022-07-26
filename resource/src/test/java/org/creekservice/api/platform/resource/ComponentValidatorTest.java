@@ -36,7 +36,9 @@ import org.creekservice.api.platform.metadata.ComponentInternal;
 import org.creekservice.api.platform.metadata.ComponentOutput;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.ServiceDescriptor;
 import org.creekservice.api.platform.metadata.SharedResource;
+import org.creekservice.api.platform.metadata.UnmanagedResource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +54,7 @@ class ComponentValidatorTest {
             Pattern.compile(".*\\(file:/.*creek-platform-metadata-.*\\.jar\\).*", Pattern.DOTALL);
 
     @Mock(name = "jane")
-    private ComponentDescriptor component;
+    private ServiceDescriptor service;
 
     @Mock(name = "jane")
     private AggregateDescriptor aggregate;
@@ -61,24 +63,32 @@ class ComponentValidatorTest {
 
     @BeforeEach
     void setUp() {
-        when(component.name()).thenReturn("bob");
+        when(service.name()).thenReturn("bob");
         when(aggregate.name()).thenReturn("bob");
 
-        when(component.inputs())
+        when(service.dockerImage()).thenReturn("image");
+
+        when(service.inputs())
                 .thenReturn(
                         List.of(
                                 mock(ComponentInput.class),
                                 mock(
                                         ComponentInput.class,
-                                        withSettings().extraInterfaces(OwnedResource.class))));
-        when(component.internals())
+                                        withSettings().extraInterfaces(OwnedResource.class)),
+                                mock(
+                                        ComponentInput.class,
+                                        withSettings().extraInterfaces(SharedResource.class))));
+        when(service.internals())
                 .thenReturn(
                         List.of(
                                 mock(ComponentInternal.class),
                                 mock(
                                         ComponentInternal.class,
-                                        withSettings().extraInterfaces(OwnedResource.class))));
-        when(component.outputs())
+                                        withSettings().extraInterfaces(OwnedResource.class)),
+                                mock(
+                                        ComponentInternal.class,
+                                        withSettings().extraInterfaces(UnmanagedResource.class))));
+        when(service.outputs())
                 .thenReturn(
                         List.of(
                                 mock(ComponentOutput.class),
@@ -90,11 +100,10 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowOnNullComponentName() {
         // Given:
-        when(component.name()).thenReturn(null);
+        when(service.name()).thenReturn(null);
 
         // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(
@@ -105,11 +114,10 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowOnBlankComponentName() {
         // Given:
-        when(component.name()).thenReturn(" \t");
+        when(service.name()).thenReturn(" \t");
 
         // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(
@@ -120,11 +128,10 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowOnSpecialComponentName() {
         // Given:
-        when(component.name()).thenReturn("bob\nbob");
+        when(service.name()).thenReturn("bob\nbob");
 
         // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(
@@ -134,13 +141,45 @@ class ComponentValidatorTest {
     }
 
     @Test
-    void shouldThrowIfResourcesOverride() {
+    void shouldThrowIfBothServiceAndAggregateDescriptor() {
         // Given:
-        component = new BadComponentDescriptor();
+        final ComponentDescriptor descriptor = new PolyDescriptor();
 
         // When:
         final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+                assertThrows(RuntimeException.class, () -> validator.validate(descriptor));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                containsString(
+                        "descriptor is both aggregate and service descriptor, component: bad"));
+    }
+
+    @Test
+    void shouldThrowIfNeitherServiceOrAggregateDescriptor() {
+        // Given:
+        final ComponentDescriptor descriptor = mock(ComponentDescriptor.class);
+        when(descriptor.name()).thenReturn("bad");
+
+        // When:
+        final Exception e =
+                assertThrows(RuntimeException.class, () -> validator.validate(descriptor));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                containsString(
+                        "descriptor is neither aggregate and service descriptor, component: bad"));
+    }
+
+    @Test
+    void shouldThrowIfResourcesOverride() {
+        // Given:
+        service = new OverridingServiceDescriptor();
+
+        // When:
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(
@@ -151,11 +190,10 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowOnNullResource() {
         // Given:
-        when(component.resources()).thenReturn(Stream.of((ResourceDescriptor) null));
+        when(service.resources()).thenReturn(Stream.of((ResourceDescriptor) null));
 
         // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(e.getMessage(), containsString("contains null resource, component: bob"));
@@ -204,11 +242,10 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowIfResourceImplementsMultipleInitializationMarkers() {
         // Given:
-        when(component.resources()).thenReturn(Stream.of(mock(BadResourceDescriptor.class)));
+        when(service.resources()).thenReturn(Stream.of(mock(BadResourceDescriptor.class)));
 
         // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> validator.validate(component));
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
 
         // Then:
         assertThat(
@@ -222,19 +259,81 @@ class ComponentValidatorTest {
     }
 
     @Test
-    void shouldNotThrowIfEverythingIsOK() {
-        validator.validate(component);
+    void shouldThrowOnNullDockerImage() {
+        // Given:
+        when(service.dockerImage()).thenReturn(null);
+
+        // When:
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                containsString("dockerImage can not be null or blank, component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
 
-    private static final class BadComponentDescriptor implements ComponentDescriptor {
+    @Test
+    void shouldThrowOnBlankDockerImage() {
+        // Given:
+        when(service.dockerImage()).thenReturn("\t");
+
+        // When:
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                containsString("dockerImage can not be null or blank, component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
+    void shouldThrowOnNullTestEnvironment() {
+        // Given:
+        when(service.testEnvironment()).thenReturn(null);
+
+        // When:
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
+
+        // Then:
+        assertThat(
+                e.getMessage(), containsString("testEnvironment can not be null, component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
+    void shouldNotThrowIfEverythingIsOK() {
+        validator.validate(aggregate);
+        validator.validate(service);
+    }
+
+    private static final class OverridingServiceDescriptor implements ServiceDescriptor {
         @Override
         public String name() {
             return "bad";
         }
 
         @Override
+        public String dockerImage() {
+            return "image";
+        }
+
+        @Override
         public Stream<ResourceDescriptor> resources() {
-            return ComponentDescriptor.super.resources();
+            return ServiceDescriptor.super.resources();
+        }
+    }
+
+    private static final class PolyDescriptor implements ServiceDescriptor, AggregateDescriptor {
+        @Override
+        public String name() {
+            return "bad";
+        }
+
+        @Override
+        public String dockerImage() {
+            return "image";
         }
     }
 
