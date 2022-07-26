@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022 Creek Contributors (https://github.com/creek-service)
+ * Copyright 2022 Creek Contributors (https://github.com/creek-service)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,15 @@
 
 package org.creekservice.api.platform.metadata;
 
-import static org.creekservice.internal.platform.metadata.Components.defaultNaming;
-
 /**
- * Type defining metadata data about an aggregate.
+ * Marker interface of an owned resources.
  *
- * <p>Aggregate descriptors should not expose any {@link #internals() internals}, and all {@link
- * #inputs() input} and {@link #outputs()} () output} resources must be {@link OwnedResource owned}.
+ * <p>A resource can conceptually be either:
+ *
+ * <ul>
+ *   <li>{@link OwnedResource owned}: owned by the service.
+ *   <li>{@code Unowned}: if not marked by one of the above it is considered owned by another
+ *       service.
+ * </ul>
  */
-public interface AggregateDescriptor extends ComponentDescriptor {
-
-    @Override
-    default String name() {
-        return defaultNaming(this, "AggregateDescriptor", "Descriptor");
-    }
-}
+public interface OwnedResource {}

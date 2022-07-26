@@ -1,5 +1,6 @@
 rootProject.name = "creek-platform"
 
 include(
-    "metadata"
+    "metadata",
+    "resource"
 )
