@@ -14,20 +14,7 @@
  * limitations under the License.
  */
 
-package org.creekservice.internal.example;
+package org.creekservice.api.platform.metadata;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
-import org.creekservice.api.example.Example;
-import org.junit.jupiter.api.Test;
-
-class ExampleImplTest {
-
-    private final Example example = new ExampleImpl();
-
-    @Test
-    void shouldReturnTrue() {
-        assertThat(example.getTrue(), is(true));
-    }
-}
+/** Marker interface of resource descriptors. */
+public interface ResourceDescriptor {}

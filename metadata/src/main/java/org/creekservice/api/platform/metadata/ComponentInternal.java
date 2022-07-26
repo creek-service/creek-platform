@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package org.creekservice.api.example;
+package org.creekservice.api.platform.metadata;
 
-public interface Example {
-
-    boolean getTrue();
-}
+/** Marker interface of component internals. */
+public interface ComponentInternal extends ResourceDescriptor {}
