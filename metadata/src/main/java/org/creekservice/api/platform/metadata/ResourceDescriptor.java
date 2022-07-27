@@ -34,6 +34,10 @@ public interface ResourceDescriptor {
      * <p>The core Creek system will use the id to determine if two descriptors refer to the same
      * resource. It will not inspect or use the parts of the URI.
      *
+     * <p>{@link ComponentInput Input}, {@link ComponentInternal internal} & {@link ComponentOutput
+     * output} resource descriptors that refer to the same underlying resource must return the same
+     * URI.
+     *
      * @return unique identifier for the resource.
      */
     URI id();
