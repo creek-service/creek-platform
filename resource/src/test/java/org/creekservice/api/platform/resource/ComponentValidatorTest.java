@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.mockito.quality.Strictness.LENIENT;
 
+import java.net.URI;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -201,6 +202,23 @@ class ComponentValidatorTest {
     }
 
     @Test
+    void shouldThrowOnResourceWithNullId() {
+        // Given:
+        final ComponentInput resource = mock(ComponentInput.class, withSettings().name("unowned"));
+        when(resource.id()).thenReturn(null);
+        when(service.resources()).thenReturn(Stream.of(resource));
+
+        // When:
+        final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
+
+        // Then:
+        assertThat(
+                e.getMessage(), containsString("null resource id, resource_type: ComponentInput$"));
+        assertThat(e.getMessage(), containsString("component: bob"));
+        assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
+    }
+
+    @Test
     void shouldThrowIfAggregateExposesInternals() {
         // Given:
         when(aggregate.internals())
@@ -242,7 +260,7 @@ class ComponentValidatorTest {
     @Test
     void shouldThrowIfResourceImplementsMultipleInitializationMarkers() {
         // Given:
-        when(service.resources()).thenReturn(Stream.of(mock(BadResourceDescriptor.class)));
+        when(service.resources()).thenReturn(Stream.of(new BadResourceDescriptor()));
 
         // When:
         final Exception e = assertThrows(RuntimeException.class, () -> validator.validate(service));
@@ -253,7 +271,7 @@ class ComponentValidatorTest {
                 containsString(
                         "resource can implement at-most one ResourceInitialization marker interface, "
                                 + "but was: [OwnedResource, SharedResource], "
-                                + "resource_type: ComponentValidatorTest$BadResourceDescriptor"));
+                                + "resource: bad:resource"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
@@ -337,6 +355,12 @@ class ComponentValidatorTest {
         }
     }
 
-    private interface BadResourceDescriptor
-            extends ResourceDescriptor, SharedResource, OwnedResource {}
+    private static final class BadResourceDescriptor
+            implements ResourceDescriptor, SharedResource, OwnedResource {
+
+        @Override
+        public URI id() {
+            return URI.create("bad:resource");
+        }
+    }
 }
