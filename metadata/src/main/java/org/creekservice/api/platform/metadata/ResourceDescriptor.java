@@ -16,5 +16,25 @@
 
 package org.creekservice.api.platform.metadata;
 
+
+import java.net.URI;
+
 /** Marker interface of resource descriptors. */
-public interface ResourceDescriptor {}
+public interface ResourceDescriptor {
+
+    /**
+     * A unique identifier for this resource.
+     *
+     * <p>To avoid URI clashes between resources from different extensions, the URI scheme will
+     * normally be prefixed with the name of the extension that managed the resource. For example,
+     * the Kafka extension's topic resource's scheme is {@code kafka-topic}.
+     *
+     * <p>The form of the rest of the URI is up the extension implementer.
+     *
+     * <p>The core Creek system will use the id to determine if two descriptors refer to the same
+     * resource. It will not inspect or use the parts of the URI.
+     *
+     * @return unique identifier for the resource.
+     */
+    URI id();
+}
