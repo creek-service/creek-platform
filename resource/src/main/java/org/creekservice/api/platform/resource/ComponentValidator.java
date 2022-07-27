@@ -136,6 +136,12 @@ public final class ComponentValidator {
             throw new InvalidDescriptorException("contains null resource", component);
         }
 
+        if (resource.id() == null) {
+            throw new InvalidDescriptorException(
+                    "null resource id, resource_type: " + resource.getClass().getSimpleName(),
+                    component);
+        }
+
         final List<String> initialisation =
                 types(resource.getClass())
                         .filter(ComponentValidator::isResourceInitializationMarkerInterface)
@@ -177,7 +183,7 @@ public final class ComponentValidator {
                 final String msg,
                 final ResourceDescriptor resource,
                 final ComponentDescriptor component) {
-            this(msg + ", resource_type: " + resource.getClass().getSimpleName(), component, true);
+            this(msg + ", resource: " + resource.id(), component, true);
         }
 
         InvalidDescriptorException(
