@@ -16,9 +16,5 @@
 
 package org.creekservice.api.platform.metadata;
 
-/**
- * Marker interface of an owned resources.
- *
- * <p>See {@link ResourceInitialization} for more info.
- */
-public interface UnmanagedResource extends ResourceInitialization {}
+/** Marker interface to indicate a resource is {@link ResourceDescriptor#isCreatable creatable}. */
+interface CreatableResource {}

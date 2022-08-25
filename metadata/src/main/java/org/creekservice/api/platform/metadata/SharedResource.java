@@ -19,6 +19,18 @@ package org.creekservice.api.platform.metadata;
 /**
  * Marker interface of an owned resources.
  *
- * <p>See {@link ResourceInitialization} for more info.
+ * <p>A resource can conceptually be either:
+ *
+ * <ul>
+ *   <li>{@link OwnedResource owned}: owned by the service.
+ *   <li>{@link UnownedResource unowned}: owned by another service.
+ *   <li>{@link SharedResource shared}: shared, i.e. owned by no specific service (rare).
+ *   <li>{@code unmanaged}: if not marked by one of the above it is considered not managed by Creek.
+ * </ul>
+ *
+ * <p>Resources should inherit <b>at most</b> one of the above interfaces.
+ *
+ * <p>For more information on resource initialization, see
+ * https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization.
  */
-public interface SharedResource extends ResourceInitialization {}
+public interface SharedResource extends CreatableResource {}

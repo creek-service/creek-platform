@@ -19,7 +19,6 @@ package org.creekservice.api.platform.resource;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -29,8 +28,9 @@ import org.creekservice.api.platform.metadata.AggregateDescriptor;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
-import org.creekservice.api.platform.metadata.ResourceInitialization;
 import org.creekservice.api.platform.metadata.ServiceDescriptor;
+import org.creekservice.api.platform.metadata.SharedResource;
+import org.creekservice.api.platform.metadata.UnownedResource;
 
 public final class ComponentValidator {
 
@@ -43,11 +43,7 @@ public final class ComponentValidator {
     private ComponentValidator() {}
 
     public void validate(final ComponentDescriptor... components) {
-        validate(List.of(components));
-    }
-
-    public void validate(final Collection<? extends ComponentDescriptor> components) {
-        components.forEach(this::validateComponent);
+        Arrays.stream(components).forEach(this::validateComponent);
     }
 
     private void validateComponent(final ComponentDescriptor component) {
@@ -159,8 +155,9 @@ public final class ComponentValidator {
     }
 
     private static boolean isResourceInitializationMarkerInterface(final Class<?> type) {
-        final Class<?>[] interfaces = type.getInterfaces();
-        return interfaces.length == 1 && interfaces[0].equals(ResourceInitialization.class);
+        return type == OwnedResource.class
+                || type == UnownedResource.class
+                || type == SharedResource.class;
     }
 
     private static Stream<Class<?>> types(final Class<?> type) {
