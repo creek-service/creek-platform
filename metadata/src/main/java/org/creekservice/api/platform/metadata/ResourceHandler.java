@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package org.creekservice.api.platform.resource;
+package org.creekservice.api.platform.metadata;
 
 
 import java.util.Collection;
-import org.creekservice.api.platform.metadata.ResourceDescriptor;
 
 /**
  * A Callback that Creek extensions implement to handler the resource types they support.

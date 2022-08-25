@@ -35,6 +35,7 @@ import org.creekservice.api.base.annotation.VisibleForTesting;
 import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.ResourceHandler;
 
 /**
  * Initializer of resources.

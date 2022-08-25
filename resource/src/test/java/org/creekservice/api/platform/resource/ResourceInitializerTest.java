@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.ResourceHandler;
 import org.creekservice.api.platform.metadata.SharedResource;
 import org.creekservice.api.platform.metadata.UnownedResource;
 import org.junit.jupiter.api.BeforeEach;
