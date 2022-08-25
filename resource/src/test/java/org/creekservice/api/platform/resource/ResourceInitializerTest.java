@@ -88,7 +88,7 @@ class ResourceInitializerTest {
     @Test
     void shouldValidateEachComponentOnInit() {
         // When:
-        initializer.init(Stream.of(component0, component1));
+        initializer.init(List.of(component0, component1));
 
         // Then:
         verify(validator).validate(component0);
@@ -98,7 +98,7 @@ class ResourceInitializerTest {
     @Test
     void shouldValidateEachComponentOnService() {
         // When:
-        initializer.service(Stream.of(component0, component1));
+        initializer.service(List.of(component0, component1));
 
         // Then:
         verify(validator).validate(component0);
@@ -108,7 +108,7 @@ class ResourceInitializerTest {
     @Test
     void shouldValidateEachComponentOnTest() {
         // When:
-        initializer.test(Stream.of(component0), Stream.of(component1));
+        initializer.test(List.of(component0), List.of(component1));
 
         // Then:
         verify(validator).validate(component0);
@@ -125,7 +125,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.service(Stream.of(component0, component1)));
+                        () -> initializer.service(List.of(component0, component1)));
 
         // Then:
         assertThat(e, is(sameInstance(expected)));
@@ -141,7 +141,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.init(Stream.of(component0, component1)));
+                        () -> initializer.init(List.of(component0, component1)));
 
         // Then:
         assertThat(
@@ -165,7 +165,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.init(Stream.of(component0, component1)));
+                        () -> initializer.init(List.of(component0, component1)));
 
         // Then:
         assertThat(
@@ -189,7 +189,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.init(Stream.of(component0, component1)));
+                        () -> initializer.init(List.of(component0, component1)));
 
         // Then:
         assertThat(
@@ -213,7 +213,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.init(Stream.of(component0, component1)));
+                        () -> initializer.init(List.of(component0, component1)));
 
         // Then:
         assertThat(
@@ -234,7 +234,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(unownedResource1));
 
         // When:
-        initializer.init(Stream.of(component0, component1));
+        initializer.init(List.of(component0, component1));
 
         // Then:
         verify(handlers, never()).get(any());
@@ -247,7 +247,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(unownedResource1));
 
         // When:
-        initializer.service(Stream.of(component0, component1));
+        initializer.service(List.of(component0, component1));
 
         // Then:
         verify(handlers, never()).get(any());
@@ -265,7 +265,7 @@ class ResourceInitializerTest {
                                 unownedResource1));
 
         // When:
-        initializer.test(Stream.of(component0), Stream.of(component1));
+        initializer.test(List.of(component0), List.of(component1));
 
         // Then:
         verify(handlers, never()).get(any());
@@ -281,7 +281,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(unmanagedResource1b));
 
         // When:
-        initializer.init(Stream.of(component0, component1));
+        initializer.init(List.of(component0, component1));
 
         // Then:
         verify(handlers, never()).get(any());
@@ -298,7 +298,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(sharedResource1b));
 
         // When:
-        initializer.init(Stream.of(component0, component1));
+        initializer.init(List.of(component0, component1));
 
         // Then:
         verify(handlerA).validate(List.of(sharedResource1, sharedResource1b));
@@ -311,7 +311,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(ownedResource1));
 
         // When:
-        initializer.test(Stream.of(component0), Stream.of(component1));
+        initializer.test(List.of(component0), List.of(component1));
 
         // Then:
         verify(handlerA).validate(List.of(unownedResource1, ownedResource1));
@@ -326,7 +326,7 @@ class ResourceInitializerTest {
 
         // When:
         final Exception e =
-                assertThrows(RuntimeException.class, () -> initializer.init(Stream.of(component0)));
+                assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
 
         // Then:
         assertThat(e, is(sameInstance(expected)));
@@ -342,7 +342,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.test(Stream.of(component0), Stream.of(component1)));
+                        () -> initializer.test(List.of(component0), List.of(component1)));
 
         // Then:
         assertThat(
@@ -363,7 +363,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(sharedResource2, sharedResource1));
 
         // When:
-        initializer.init(Stream.of(component0, component1));
+        initializer.init(List.of(component0, component1));
 
         // Then:
         verify(handlerA).ensure(List.of(sharedResource1, sharedResource2));
@@ -380,7 +380,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
 
         // When:
-        initializer.service(Stream.of(component0, component1));
+        initializer.service(List.of(component0, component1));
 
         // Then:
         verify(handlerA).ensure(List.of(ownedResource1, ownedResource2));
@@ -401,7 +401,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
 
         // When:
-        initializer.test(Stream.of(component0), Stream.of(component1));
+        initializer.test(List.of(component0), List.of(component1));
 
         // Then:
         verify(handlerA).ensure(List.of(ownedResource2));
@@ -417,7 +417,7 @@ class ResourceInitializerTest {
         // When:
         final Exception e =
                 assertThrows(
-                        RuntimeException.class, () -> initializer.service(Stream.of(component0)));
+                        RuntimeException.class, () -> initializer.service(List.of(component0)));
 
         // Then:
         assertThat(e, is(sameInstance(expected)));
@@ -440,7 +440,7 @@ class ResourceInitializerTest {
         when(component0.resources()).thenReturn(Stream.of(ownedResource1, ownedResourceB));
 
         // When:
-        initializer.service(Stream.of(component0));
+        initializer.service(List.of(component0));
 
         // Then:
         verify(handlerA).ensure(List.of(ownedResource1));
