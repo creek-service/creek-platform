@@ -41,4 +41,56 @@ public interface ResourceDescriptor {
      * @return unique identifier for the resource.
      */
     URI id();
+
+    /**
+     * Determine if a resource descriptor is creatable.
+     *
+     * @param r the resource descriptor to check.
+     * @return {@code true} if creatable, {@code false} otherwise.
+     */
+    static boolean isCreatable(final ResourceDescriptor r) {
+        return r instanceof CreatableResource;
+    }
+
+    /**
+     * Determine if a resource descriptor is marked owned.
+     *
+     * @param r the resource descriptor to check.
+     * @return {@code true} if creatable, {@code false} otherwise.
+     */
+    static boolean isOwned(final ResourceDescriptor r) {
+        return r instanceof OwnedResource;
+    }
+
+    /**
+     * Determine if a resource descriptor is unowned.
+     *
+     * @param r the resource descriptor to check.
+     * @return {@code true} if creatable, {@code false} otherwise.
+     */
+    static boolean isUnowned(final ResourceDescriptor r) {
+        return r instanceof UnownedResource;
+    }
+
+    /**
+     * Determine if a resource descriptor is shared.
+     *
+     * @param r the resource descriptor to check.
+     * @return {@code true} if creatable, {@code false} otherwise.
+     */
+    static boolean isShared(final ResourceDescriptor r) {
+        return r instanceof SharedResource;
+    }
+
+    /**
+     * Determine if a resource descriptor is unmanaged.
+     *
+     * @param r the r descriptor to check.
+     * @return {@code true} if creatable, {@code false} otherwise.
+     */
+    static boolean isUnmanaged(final ResourceDescriptor r) {
+        return !(r instanceof SharedResource
+                || r instanceof OwnedResource
+                || r instanceof UnownedResource);
+    }
 }

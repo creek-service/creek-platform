@@ -65,24 +65,45 @@ define a resource the component uses, e.g. a Kafka Topic.
 
 ### Resource initialization
 
-Resources can optionally be marked with **one** of the `ResourceInitialization` marker interfaces to control how
-and when the resource is initialized:
+#### Resource ownership
 
-#### Owned Resources
+Conceptually, resources, such as a Kafka topic or database, can be owned by a particular service, owned by another service, or shared.
+This is encoded into the type of the resource descriptor, e.g. an `OwnedKafkaTopicInput` vs (unowned)`KafkaTopicInput`.
+
+Creek supports the following resource descriptor ownership model:
+
+* [_owned_](#owned-resources): a descriptor to a resource conceptually owned by the service.
+* [_unowned_](#unowned-resources): a descriptor to a resource conceptually owned by another service.
+* [_shared_](#shared-resources): a descriptor to a resource not conceptually owned by any service.
+            (This should be a rare thing in a well architected platform).
+* [_unmanaged_](#unmanaged-resources): a descriptor to a resource which Creek will not manage.
+
+##### Owned Resources
 
 Resources tagged with the `OwnedResource` interface are conceptually owns by the service.
 
-For example, service's generally _own_ their Kafka output topics, as this is the data they are responsible for generating
-and managing. Therefore, the service's descriptor will define a descriptor for this resource, e.g. defining the
-topic name, key & value types, partition count, etc.
+For example, services generally _own_ their Kafka output topics, as this is the data they are responsible for generating
+and managing. Therefore, the service's descriptor will define an _owned_ descriptor for this resource, e.g. defining the
+topic name, key & value types, partition count, and any other parameters required to allow the service to create the topic.
 
-When the service starts, Creek will automatically create the resource when initializing the service context.
+When the service starts, Creek will automatically create the resource when initializing the service.
 
 > ### NOTE
 > Future plans are to support a mode where owned resources are created by an initialization tool, prior to deployment.
-> See https://github.com/creek-service/creek-service/issues/68.
+> See [issue-68][2].
+
+##### Unowned Resources
+
+Resources tagged with the `UnownedResource` interface are conceptually owns by another service.
+
+For example, services generally consume Kafka the _owned_ output topics of upstream services. 
+Therefore, the service's descriptor will define an _unowned_ descriptor for such resource, e.g. defining the
+topic name, key & value types, partition count, etc. The unowned descriptor is created by calling `toInput` on 
+the owned descriptor.
+
+When the service starts, Creek will _not_ initialize unowned resources.
  
-#### Shared Resources
+##### Shared Resources
 
 Resources tagged with the `SharedResource` interface are conceptually not owned by any service.
 
@@ -92,17 +113,32 @@ that wish to use it.
 Shared resources are initialised via the [Init tool](https://github.com/creek-service/creek-platform/issues/7) before 
 any service that requires them are deployed.
 
-#### Unmanaged Resources
+##### Unmanaged Resources
 
-Resources tagged with the `UnmanagedResource` interface are deemed not to be initialized by Creek. Such resources
-must be initialized some other way.
+Any resource descriptor that does not implement one of the resource initialization marker interfaces are deemed not 
+to be initialized by Creek. Such resources must be initialized some other way.
 
-#### Unowned Resources
+#### Resource deployment
 
-Any resource descriptor that does not implement one of the resource initialization marker interfaces is deemed to be 
-an unowned resource, i.e. a resource owned by another component that this service is using.
+Resources, for example Kafka topics or databases, can be initialized/created at different points in the deployment process.
+Most resources are created by the service that [conceptually owns](#owned-resources) them when the service starts for the first time.
+However, some resources may be to be created before a service starts, e.g. [shared resources](#shared-resources):
+resources that are not owned by any one single service.
 
-For example, an upstream service defines an owned Kafka output topic that a service consumes. The service's descriptor
-will import the upstream service's topic descriptor and obtain an _unowned_ input topic descriptor from it. 
+Creek supports initializing resources at different points in the process by defining the following stages of resource
+initialization:
+
+* **init**: Initialize an environment with any resources that should be created before services are started.
+  This is generally [shared resources](#shared-resources), though, in the future Creek will also support
+  [pre-initializing owned resources][2] as well.
+* **service**: Initialize any resources that the service [conceptually owns](#owned-resources) and which are managed
+  by Creek.
+* **test**: A special stage used for [system testing][3]: for a given subset of components under test, initialize a test
+  environment to ensure all unowned resources are created.
+
+The [Init tool](https://github.com/creek-service/creek-platform/issues/7) can be used to manually initialize resources 
+at these different stages.
 
 [1]: https://github.com/creek-service/creek-kafka/tree/main/metadata
+[2]: https://github.com/creek-service/creek-service/issues/68
+[3]: https://github.com/creek-service/creek-system-test

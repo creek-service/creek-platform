@@ -39,7 +39,7 @@ import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ServiceDescriptor;
 import org.creekservice.api.platform.metadata.SharedResource;
-import org.creekservice.api.platform.metadata.UnmanagedResource;
+import org.creekservice.api.platform.metadata.UnownedResource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,7 +72,9 @@ class ComponentValidatorTest {
         when(service.inputs())
                 .thenReturn(
                         List.of(
-                                mock(ComponentInput.class),
+                                mock(
+                                        ComponentInput.class,
+                                        withSettings().extraInterfaces(UnownedResource.class)),
                                 mock(
                                         ComponentInput.class,
                                         withSettings().extraInterfaces(OwnedResource.class)),
@@ -82,17 +84,19 @@ class ComponentValidatorTest {
         when(service.internals())
                 .thenReturn(
                         List.of(
-                                mock(ComponentInternal.class),
+                                mock(
+                                        ComponentInternal.class,
+                                        withSettings().extraInterfaces(UnownedResource.class)),
                                 mock(
                                         ComponentInternal.class,
                                         withSettings().extraInterfaces(OwnedResource.class)),
-                                mock(
-                                        ComponentInternal.class,
-                                        withSettings().extraInterfaces(UnmanagedResource.class))));
+                                mock(ComponentInternal.class)));
         when(service.outputs())
                 .thenReturn(
                         List.of(
-                                mock(ComponentOutput.class),
+                                mock(
+                                        ComponentOutput.class,
+                                        withSettings().extraInterfaces(UnownedResource.class)),
                                 mock(
                                         ComponentOutput.class,
                                         withSettings().extraInterfaces(OwnedResource.class))));
