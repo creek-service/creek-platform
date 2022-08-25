@@ -25,6 +25,7 @@ import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnowne
 import static org.creekservice.api.platform.resource.ComponentValidator.componentValidator;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -76,14 +77,14 @@ public final class ResourceInitializer {
         this.componentValidator = requireNonNull(componentValidator, "componentValidator");
     }
 
-    public void init(final Stream<ComponentDescriptor> components) {
+    public void init(final Collection<? extends ComponentDescriptor> components) {
         ensureResources(
                 groupById(
                         components,
                         resourceGroup -> resourceGroup.anyMatch(ResourceDescriptor::isShared)));
     }
 
-    public void service(final Stream<ComponentDescriptor> components) {
+    public void service(final Collection<? extends ComponentDescriptor> components) {
         ensureResources(
                 groupById(
                         components,
@@ -91,8 +92,8 @@ public final class ResourceInitializer {
     }
 
     public void test(
-            final Stream<ComponentDescriptor> componentsUnderTest,
-            final Stream<ComponentDescriptor> otherComponents) {
+            final Collection<? extends ComponentDescriptor> componentsUnderTest,
+            final Collection<? extends ComponentDescriptor> otherComponents) {
 
         final Map<URI, List<ResourceDescriptor>> unowned =
                 groupById(
@@ -128,9 +129,9 @@ public final class ResourceInitializer {
     }
 
     private Stream<List<ResourceDescriptor>> groupById(
-            final Stream<ComponentDescriptor> componentsUnderTest,
+            final Collection<? extends ComponentDescriptor> components,
             final Predicate<Stream<ResourceDescriptor>> groupPredicate) {
-        return componentsUnderTest
+        return components.stream()
                 .flatMap(this::getResources)
                 .collect(groupingBy(ResourceDescriptor::id))
                 .values()
