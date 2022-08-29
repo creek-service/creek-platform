@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -243,32 +245,47 @@ class ResourceInitializerTest {
     @Test
     void shouldNotInitializeAnyResourcesOnServiceIfNoOwnedResources() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1, unmanagedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        final ResourceA shared = resourceA(2, SharedResource.class);
+        final ResourceA unowned = resourceA(3, UnownedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(shared, unmanagedResource1));
+        when(component1.resources()).thenReturn(Stream.of(unowned));
 
         // When:
         initializer.service(List.of(component0, component1));
 
         // Then:
-        verify(handlers, never()).get(any());
+        verify(handlerA, never()).ensure(any());
     }
 
     @Test
     void shouldNotInitializeAnyResourcesOnTestIfNoUnownedResources() {
         // Given:
-        when(component0.resources())
-                .thenReturn(
-                        Stream.of(
-                                sharedResource1,
-                                unmanagedResource1,
-                                ownedResource1,
-                                unownedResource1));
+        final ResourceA shared = resourceA(2, SharedResource.class);
+        final ResourceA unowned = resourceA(3, UnownedResource.class);
+        final ResourceA owned = resourceA(4, OwnedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1, shared));
+        when(component1.resources())
+                .thenReturn(Stream.of(unmanagedResource1, shared, unowned, owned));
 
         // When:
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(handlers, never()).get(any());
+        verify(handlerA, never()).ensure(any());
+    }
+
+    @Test
+    void
+            shouldNotInitializeAnyResourcesOnTestIfUnownedResourcesHaveOwnedDescriptorInComponentsUnderTest() {
+        // Given:
+        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
+        when(component1.resources()).thenReturn(Stream.of(ownedResource1));
+
+        // When:
+        initializer.test(List.of(component0, component1), List.of());
+
+        // Then:
+        verify(handlerA, never()).ensure(any());
     }
 
     @Test
@@ -290,10 +307,7 @@ class ResourceInitializerTest {
     @Test
     void shouldValidateSharedGroup() {
         // Given:
-        final ResourceA sharedResource1b =
-                mock(ResourceA.class, withSettings().extraInterfaces(SharedResource.class));
-        when(sharedResource1b.id()).thenReturn(A1_ID);
-
+        final ResourceA sharedResource1b = resourceA(1, SharedResource.class);
         when(component0.resources()).thenReturn(Stream.of(sharedResource1));
         when(component1.resources()).thenReturn(Stream.of(sharedResource1b));
 
@@ -314,7 +328,7 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(handlerA).validate(List.of(unownedResource1, ownedResource1));
+        verify(handlerA, atLeastOnce()).validate(List.of(unownedResource1, ownedResource1));
     }
 
     @Test
@@ -355,10 +369,7 @@ class ResourceInitializerTest {
     @Test
     void shouldEnsureSharedResource() {
         // Given:
-        final ResourceA sharedResource2 =
-                mock(ResourceA.class, withSettings().extraInterfaces(SharedResource.class));
-        when(sharedResource2.id()).thenReturn(URI.create("a://2"));
-
+        final ResourceA sharedResource2 = resourceA(2, SharedResource.class);
         when(component0.resources()).thenReturn(Stream.of(sharedResource1));
         when(component1.resources()).thenReturn(Stream.of(sharedResource2, sharedResource1));
 
@@ -372,10 +383,7 @@ class ResourceInitializerTest {
     @Test
     void shouldEnsureOwnedResource() {
         // Given:
-        final ResourceA ownedResource2 =
-                mock(ResourceA.class, withSettings().extraInterfaces(OwnedResource.class));
-        when(ownedResource2.id()).thenReturn(URI.create("a://2"));
-
+        final ResourceA ownedResource2 = resourceA(2, OwnedResource.class);
         when(component0.resources()).thenReturn(Stream.of(ownedResource1));
         when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
 
@@ -389,14 +397,8 @@ class ResourceInitializerTest {
     @Test
     void shouldEnsureUnownedResource() {
         // Given:
-        final ResourceA ownedResource2 =
-                mock(ResourceA.class, withSettings().extraInterfaces(OwnedResource.class));
-        when(ownedResource2.id()).thenReturn(URI.create("a://2"));
-
-        final ResourceA unownedResource2 =
-                mock(ResourceA.class, withSettings().extraInterfaces(UnownedResource.class));
-        when(unownedResource2.id()).thenReturn(URI.create("a://2"));
-
+        final ResourceA ownedResource2 = resourceA(2, OwnedResource.class);
+        final ResourceA unownedResource2 = resourceA(2, UnownedResource.class);
         when(component0.resources()).thenReturn(Stream.of(unownedResource2));
         when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
 
@@ -433,10 +435,7 @@ class ResourceInitializerTest {
                                         ? handlerA
                                         : handlerB);
 
-        final ResourceB ownedResourceB =
-                mock(ResourceB.class, withSettings().extraInterfaces(OwnedResource.class));
-        when(ownedResourceB.id()).thenReturn(URI.create("b://1"));
-
+        final ResourceB ownedResourceB = resourceB(OwnedResource.class);
         when(component0.resources()).thenReturn(Stream.of(ownedResource1, ownedResourceB));
 
         // When:
@@ -445,6 +444,97 @@ class ResourceInitializerTest {
         // Then:
         verify(handlerA).ensure(List.of(ownedResource1));
         verify(handlerB).ensure(List.of(ownedResourceB));
+    }
+
+    @Test
+    void shouldValidateServiceSharedResourceGroups() {
+        // Given:
+        final ResourceA resource2 = resourceA(1, SharedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(sharedResource1, resource2));
+
+        // When:
+        initializer.service(List.of(component0));
+
+        // Then:
+        verify(handlerA).validate(List.of(sharedResource1, resource2));
+    }
+
+    @Test
+    void shouldValidateServiceUnownedResourceGroups() {
+        // Given:
+        final ResourceA resource2 = resourceA(1, UnownedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(unownedResource1, resource2));
+
+        // When:
+        initializer.service(List.of(component0));
+
+        // Then:
+        verify(handlerA).validate(List.of(unownedResource1, resource2));
+    }
+
+    @Test
+    void shouldValidateServiceUnmanagedResourceGroups() {
+        // Given:
+        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1));
+
+        // When:
+        initializer.service(List.of(component0));
+
+        // Then:
+        verify(handlerA).validate(List.of(unmanagedResource1));
+    }
+
+    @Test
+    void shouldValidateTestSharedResourceGroupsForComponentsUnderTestOnly() {
+        // Given:
+        final ResourceA resource2 = resourceA(1, SharedResource.class);
+        final ResourceA resource3 = resourceA(1, SharedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(sharedResource1, resource2));
+        when(component1.resources()).thenReturn(Stream.of(resource3));
+
+        // When:
+        initializer.test(List.of(component0), List.of(component1));
+
+        // Then:
+        verify(handlerA).validate(List.of(sharedResource1, resource2));
+    }
+
+    @Test
+    void shouldValidateTestUnmanagedResourceGroupsForComponentsUnderTestOnly() {
+        // Given:
+        final ResourceA resource2 = resourceA(1);
+        final ResourceA resource3 = resourceA(1);
+        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1, resource2));
+        when(component1.resources()).thenReturn(Stream.of(resource3));
+
+        // When:
+        initializer.test(List.of(component0), List.of(component1));
+
+        // Then:
+        verify(handlerA).validate(List.of(unmanagedResource1, resource2));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static ResourceA resourceA(final int id) {
+        return resourceA(id, withSettings());
+    }
+
+    private static ResourceA resourceA(final int id, final Class<?> extraInterface) {
+        return resourceA(id, withSettings().extraInterfaces(extraInterface));
+    }
+
+    private static ResourceA resourceA(final int id, final MockSettings settings) {
+        final ResourceA resource = mock(ResourceA.class, settings);
+        when(resource.id()).thenReturn(URI.create("a://" + id));
+        return resource;
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static ResourceB resourceB(final Class<?> extraInterface) {
+        final ResourceB resource =
+                mock(ResourceB.class, withSettings().extraInterfaces(extraInterface));
+        when(resource.id()).thenReturn(URI.create("b://1"));
+        return resource;
     }
 
     private interface ResourceA extends ResourceDescriptor {}
