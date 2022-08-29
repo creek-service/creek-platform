@@ -77,20 +77,47 @@ public final class ResourceInitializer {
         this.componentValidator = requireNonNull(componentValidator, "componentValidator");
     }
 
+    /**
+     * Initialize resources that should be created during the init stage.
+     *
+     * <p>Only resource's that require initialisation at this stage will have their descriptors
+     * validated.
+     *
+     * @param components components to search for resources.
+     */
     public void init(final Collection<? extends ComponentDescriptor> components) {
         ensureResources(
                 groupById(
                         components,
-                        resourceGroup -> resourceGroup.anyMatch(ResourceDescriptor::isShared)));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared),
+                        false));
     }
 
+    /**
+     * Initialize resources that should be created during the service stage.
+     *
+     * <p>All resource's will have their descriptors validated.
+     *
+     * @param components components to search for resources.
+     */
     public void service(final Collection<? extends ComponentDescriptor> components) {
         ensureResources(
                 groupById(
                         components,
-                        resourceGroup -> resourceGroup.anyMatch(ResourceDescriptor::isOwned)));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned),
+                        true));
     }
 
+    /**
+     * Initialize resources that should be created during the test stage.
+     *
+     * <p>Components under test will have all their resource descriptors validated.
+     *
+     * @param componentsUnderTest components that are being testing
+     * @param otherComponents other components surrounding those being tested, e.g. upstream and
+     *     downstream components. These components can contain {@link ResourceDescriptor#isCreatable
+     *     creatable} resource descriptors needed to know how to create edge resources.
+     */
     public void test(
             final Collection<? extends ComponentDescriptor> componentsUnderTest,
             final Collection<? extends ComponentDescriptor> otherComponents) {
@@ -98,45 +125,52 @@ public final class ResourceInitializer {
         final Map<URI, List<ResourceDescriptor>> unowned =
                 groupById(
                                 componentsUnderTest,
-                                resourceGroup ->
-                                        resourceGroup.noneMatch(ResourceDescriptor::isOwned))
+                                resGroup ->
+                                        resGroup.stream().anyMatch(ResourceDescriptor::isUnowned)
+                                                && resGroup.stream()
+                                                        .noneMatch(ResourceDescriptor::isOwned),
+                                true)
                         .collect(Collectors.toMap(group -> group.get(0).id(), Function.identity()));
 
         groupById(
                         otherComponents,
-                        resourceGroup -> resourceGroup.anyMatch(r -> unowned.containsKey(r.id())))
-                .forEach(
-                        resourceGroup ->
-                                unowned.get(resourceGroup.get(0).id()).addAll(resourceGroup));
+                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())),
+                        false)
+                .forEach(resGroup -> unowned.get(resGroup.get(0).id()).addAll(resGroup));
 
         final Stream<List<ResourceDescriptor>> stream = unowned.values().stream();
         ensureResources(stream);
     }
 
-    private void ensureResources(final Stream<List<ResourceDescriptor>> resourceGroups) {
-        resourceGroups
+    private void ensureResources(final Stream<List<ResourceDescriptor>> resGroups) {
+        resGroups
                 .peek(this::validateResourceGroup)
                 .map(this::creatableDescriptor)
                 .collect(groupingBy(this::resourceHandler))
                 .forEach(ResourceHandler::ensure);
     }
 
-    private ResourceDescriptor creatableDescriptor(final List<ResourceDescriptor> resourceGroup) {
-        return resourceGroup.stream()
+    private ResourceDescriptor creatableDescriptor(final List<ResourceDescriptor> resGroup) {
+        return resGroup.stream()
                 .filter(ResourceDescriptor::isCreatable)
                 .findAny()
-                .orElseThrow(() -> new UncreatableResourceException(resourceGroup));
+                .orElseThrow(() -> new UncreatableResourceException(resGroup));
     }
 
     private Stream<List<ResourceDescriptor>> groupById(
             final Collection<? extends ComponentDescriptor> components,
-            final Predicate<Stream<ResourceDescriptor>> groupPredicate) {
-        return components.stream()
-                .flatMap(this::getResources)
-                .collect(groupingBy(ResourceDescriptor::id))
-                .values()
-                .stream()
-                .filter(l -> groupPredicate.test(l.stream()));
+            final Predicate<List<ResourceDescriptor>> groupPredicate,
+            final boolean validate) {
+        final Map<URI, List<ResourceDescriptor>> grouped =
+                components.stream()
+                        .flatMap(this::getResources)
+                        .collect(groupingBy(ResourceDescriptor::id));
+
+        if (validate) {
+            grouped.values().forEach(this::validateResourceGroup);
+        }
+
+        return grouped.values().stream().filter(groupPredicate);
     }
 
     private Stream<ResourceDescriptor> getResources(final ComponentDescriptor component) {
