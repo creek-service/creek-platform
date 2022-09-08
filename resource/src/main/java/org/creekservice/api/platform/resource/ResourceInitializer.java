@@ -22,7 +22,6 @@ import static org.creekservice.api.platform.metadata.ResourceDescriptor.isOwned;
 import static org.creekservice.api.platform.metadata.ResourceDescriptor.isShared;
 import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnmanaged;
 import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnowned;
-import static org.creekservice.api.platform.resource.ComponentValidator.componentValidator;
 
 import java.net.URI;
 import java.util.Collection;
@@ -37,6 +36,7 @@ import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ResourceHandler;
+import org.creekservice.internal.platform.resource.ComponentValidator;
 
 /**
  * Initializer of resources.
@@ -67,7 +67,7 @@ public final class ResourceInitializer {
      * @return an initializer instance.
      */
     public static ResourceInitializer resourceInitializer(final ResourceHandlers handlers) {
-        return new ResourceInitializer(handlers, componentValidator());
+        return new ResourceInitializer(handlers, new ComponentValidator());
     }
 
     @VisibleForTesting
