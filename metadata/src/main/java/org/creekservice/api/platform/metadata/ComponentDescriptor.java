@@ -16,6 +16,7 @@
 
 package org.creekservice.api.platform.metadata;
 
+import static org.creekservice.internal.platform.metadata.Components.defaultNaming;
 
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +42,9 @@ public interface ComponentDescriptor {
      * @return the unique name of the component within the platform. Can not be {@code null}, blank
      *     or contain control characters.
      */
-    String name();
+    default String name() {
+        return defaultNaming(this, "Descriptor");
+    }
 
     /** @return the inputs to the component, e.g. Kafka topics it consumes. */
     default Collection<ComponentInput> inputs() {

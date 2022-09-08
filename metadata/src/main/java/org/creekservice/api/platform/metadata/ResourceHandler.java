@@ -43,7 +43,7 @@ public interface ResourceHandler<T extends ResourceDescriptor> {
      * @throws RuntimeException implementations should throw a suitable exception type on any
      *     validation failures, providing enough information for users to resolve the issue.
      */
-    void validate(Collection<T> resourceGroup);
+    void validate(Collection<? extends T> resourceGroup);
 
     /**
      * Ensure the supplied {@code resources} exists.
@@ -57,5 +57,5 @@ public interface ResourceHandler<T extends ResourceDescriptor> {
      * @param resources the resource instances to ensure exists and are initialized. Resources
      *     passed will be {@link ResourceDescriptor#isCreatable creatable}.
      */
-    void ensure(Collection<T> resources);
+    void ensure(Collection<? extends T> resources);
 }

@@ -16,18 +16,10 @@
 
 package org.creekservice.api.platform.metadata;
 
-import static org.creekservice.internal.platform.metadata.Components.defaultNaming;
-
 /**
  * Type defining metadata data about an aggregate.
  *
  * <p>Aggregate descriptors should not expose any {@link #internals() internals}, and all {@link
  * #inputs() input} and {@link #outputs()} () output} resources must be {@link OwnedResource owned}.
  */
-public interface AggregateDescriptor extends ComponentDescriptor {
-
-    @Override
-    default String name() {
-        return defaultNaming(this, "AggregateDescriptor", "Descriptor");
-    }
-}
+public interface AggregateDescriptor extends ComponentDescriptor {}

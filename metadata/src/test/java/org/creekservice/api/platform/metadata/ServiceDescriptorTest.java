@@ -19,7 +19,6 @@ package org.creekservice.api.platform.metadata;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
@@ -28,37 +27,11 @@ class ServiceDescriptorTest {
     private final ServiceDescriptor descriptor = new TestServiceDescriptor();
 
     @Test
-    void shouldReturnStandardAggregateName() {
-        assertThat(new TestServiceDescriptor().name(), is("test-service"));
-    }
-
-    @Test
-    void shouldThrowOnNonStandardAggregateClassName() {
-        // Given:
-        final ServiceDescriptor descriptor = new NonStandard();
-
-        // When:
-        final Exception e = assertThrows(UnsupportedOperationException.class, descriptor::name);
-
-        // Then:
-        assertThat(
-                e.getMessage(),
-                is("Non-standard class name: either override name() or use standard naming"));
-    }
-
-    @Test
     void shouldDefaultToNoTestEnv() {
         assertThat(descriptor.testEnvironment().entrySet(), is(empty()));
     }
 
     private static final class TestServiceDescriptor implements ServiceDescriptor {
-        @Override
-        public String dockerImage() {
-            return null;
-        }
-    }
-
-    private static final class NonStandard implements ServiceDescriptor {
         @Override
         public String dockerImage() {
             return null;

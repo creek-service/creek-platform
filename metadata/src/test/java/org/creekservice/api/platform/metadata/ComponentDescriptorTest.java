@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collection;
@@ -36,9 +37,29 @@ class ComponentDescriptorTest {
     private final ComponentDescriptor descriptor = new TestDescriptor();
 
     @Test
+    void shouldReturnStandardComponentName() {
+        assertThat(new StandardComponentDescriptor().name(), is("standard-component"));
+        assertThat(new SupportedDescriptor().name(), is("supported"));
+    }
+
+    @Test
+    void shouldThrowOnNonStandardComponentClassName() {
+        // Given:
+        final ComponentDescriptor descriptor = new NonStandard();
+
+        // When:
+        final Exception e = assertThrows(UnsupportedOperationException.class, descriptor::name);
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                is("Non-standard class name: either override name() or use standard naming"));
+    }
+
+    @Test
     void shouldDefaultToEmptyResources() {
         // Given:
-        final ComponentDescriptor emptyDescriptor = () -> "bob";
+        final ComponentDescriptor emptyDescriptor = new ComponentDescriptor() {};
 
         // Then:
         assertThat(emptyDescriptor.inputs(), is(empty()));
@@ -83,4 +104,10 @@ class ComponentDescriptorTest {
             return OUTPUTS;
         }
     }
+
+    private static final class StandardComponentDescriptor implements ComponentDescriptor {}
+
+    private static final class SupportedDescriptor implements ComponentDescriptor {}
+
+    private static final class NonStandard implements ComponentDescriptor {}
 }
