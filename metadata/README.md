@@ -56,12 +56,13 @@ Resource descriptors define the resources a component uses in its [inputs](#inpu
 There are corresponding `ComponentInput`, `ComponentInternal` and `ComponentOutput` marker interfaces, respectively. 
 
 Authors of creek services are not expected to implement the above marker interfaces. Creek extensions, 
-(such as [creek-kafka][1]), expose their own interfaces, which extend the marker interfaces, and which can be used to 
+(such as [creek-kafka][1]), expose their own interfaces, which extend these marker interfaces, and which can be used to 
 define a resource the component uses, e.g. a Kafka Topic.
 
 > ### NOTE
-> Extensions expose resource _interfaces_ rather than _classes_ to keep code coupling to a minimum, minimising chances of 
-> dependency hell, etc.
+> The reason extensions expose resource _interfaces_ rather than _classes_ is to keep code coupling to a minimum, 
+> thereby minimising chances of dependency hell. Extensions provide example code that can be cut & paste for
+> creating the required implementations.
 
 ### Resource initialization
 
@@ -92,17 +93,23 @@ When the service starts, Creek will automatically create the resource when initi
 > Future plans are to support a mode where owned resources are created by an initialization tool, prior to deployment.
 > See [issue-68][2].
 
+The owned resource types provided by extensions will define helper methods to obtain an unowned descriptor from an
+owned one. For example, the `OwnedKafkaTopicOutput` has a `toInput` method to obtain an unowned `KafkaTopicInput`.
+
 ##### Unowned Resources
 
 Resources tagged with the `UnownedResource` interface are conceptually owns by another service.
 
 For example, services generally consume Kafka the _owned_ output topics of upstream services. 
 Therefore, the service's descriptor will define an _unowned_ descriptor for such resource, e.g. defining the
-topic name, key & value types, partition count, etc. The unowned descriptor is created by calling `toInput` on 
-the owned descriptor.
+topic name, key & value types, partition count, etc. 
 
 When the service starts, Creek will _not_ initialize unowned resources.
- 
+
+Unowned resource types provided by extensions should not normally be directly created. Instead, the unowned descriptor 
+should be created by calling an appropriate helper method on the owned resource. For example, an unowned `KafkaTopicInput`
+is obtained by calling `toInput` on the associated `OwnedKafkaTopicOutput`. 
+
 ##### Shared Resources
 
 Resources tagged with the `SharedResource` interface are conceptually not owned by any service.
@@ -112,6 +119,10 @@ that wish to use it.
 
 Shared resources are initialised via the [Init tool](https://github.com/creek-service/creek-platform/issues/7) before 
 any service that requires them are deployed.
+
+Shared resource types provided by extensions will implement the `ComponentInput`, `ComponentInternal` and/or `ComponentOutput` 
+interfaces, as appropriate for the resource type.  This allows a shared single definition to be used directly as a component's
+input, internal or output.
 
 ##### Unmanaged Resources
 

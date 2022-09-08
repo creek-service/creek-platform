@@ -51,11 +51,11 @@ public interface ResourceHandler<T extends ResourceDescriptor> {
      * <p>Instructs an extension to ensure the resources described by the supplied descriptor exist
      * and are initialized.
      *
-     * <p>Implementations should consider outputting a warning or failing if the resource alreay
+     * <p>Implementations should consider outputting a warning or failing if the resource already
      * exists, but does not match the expected configuration.
      *
-     * @param resources the resource instances to ensure exists and are initialized. Resources must
-     *     be {@link ResourceDescriptor#isCreatable creatable}.
+     * @param resources the resource instances to ensure exists and are initialized. Resources
+     *     passed will be {@link ResourceDescriptor#isCreatable creatable}.
      */
     void ensure(Collection<T> resources);
 }

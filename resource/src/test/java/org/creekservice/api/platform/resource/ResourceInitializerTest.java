@@ -40,6 +40,7 @@ import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ResourceHandler;
 import org.creekservice.api.platform.metadata.SharedResource;
 import org.creekservice.api.platform.metadata.UnownedResource;
+import org.creekservice.internal.platform.resource.ComponentValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.creekservice.api.platform.resource;
+package org.creekservice.internal.platform.resource;
 
-import static org.creekservice.api.platform.resource.ComponentValidator.componentValidator;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.matchesRegex;
@@ -60,7 +59,7 @@ class ComponentValidatorTest {
     @Mock(name = "jane")
     private AggregateDescriptor aggregate;
 
-    private final ComponentValidator validator = componentValidator();
+    private final ComponentValidator validator = new ComponentValidator();
 
     @BeforeEach
     void setUp() {

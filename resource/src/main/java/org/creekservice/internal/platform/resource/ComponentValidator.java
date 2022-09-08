@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.creekservice.api.platform.resource;
+package org.creekservice.internal.platform.resource;
 
 
 import java.lang.reflect.Method;
@@ -36,11 +36,7 @@ public final class ComponentValidator {
 
     private static final Pattern CTRL_CHAR = Pattern.compile("\\p{Cntrl}");
 
-    public static ComponentValidator componentValidator() {
-        return new ComponentValidator();
-    }
-
-    private ComponentValidator() {}
+    public ComponentValidator() {}
 
     public void validate(final ComponentDescriptor... components) {
         Arrays.stream(components).forEach(this::validateComponent);
