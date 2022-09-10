@@ -179,11 +179,8 @@ public final class ResourceInitializer {
     }
 
     /**
-     * Validate a group of descriptors that describe the same resource, ensuring they are
-     * consistent.
-     *
-     * <p>When dealing with multiple components, the same resource can be described by multiple
-     * descriptors. All descriptors should agree on the details of the resource.
+     * Validate a group of descriptors that describe the same resource, ensuring they are consistent
+     * on how the resource is initialized.
      *
      * @param resourceGroup the group of descriptors that describe the same resource.
      */
@@ -207,8 +204,6 @@ public final class ResourceInitializer {
                         "owned or unowned", resourceGroup);
             }
         }
-
-        resourceHandler(resourceGroup.get(0)).validate(resourceGroup);
     }
 
     @SuppressWarnings("unchecked")

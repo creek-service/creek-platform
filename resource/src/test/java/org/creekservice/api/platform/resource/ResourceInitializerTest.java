@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -306,48 +305,6 @@ class ResourceInitializerTest {
     }
 
     @Test
-    void shouldValidateSharedGroup() {
-        // Given:
-        final ResourceA sharedResource1b = resourceA(1, SharedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource1b));
-
-        // When:
-        initializer.init(List.of(component0, component1));
-
-        // Then:
-        verify(handlerA).validate(List.of(sharedResource1, sharedResource1b));
-    }
-
-    @Test
-    void shouldValidateOwnedAndUnownedGroup() {
-        // Given:
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(ownedResource1));
-
-        // When:
-        initializer.test(List.of(component0), List.of(component1));
-
-        // Then:
-        verify(handlerA, atLeastOnce()).validate(List.of(unownedResource1, ownedResource1));
-    }
-
-    @Test
-    void shouldThrowIfResourceGroupValidationFails() {
-        // Given:
-        final RuntimeException expected = new RuntimeException("boom");
-        doThrow(expected).when(handlerA).validate(any());
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
-
-        // When:
-        final Exception e =
-                assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
-
-        // Then:
-        assertThat(e, is(sameInstance(expected)));
-    }
-
-    @Test
     void shouldThrowOnUncreatableResource() {
         // Given:
         when(component0.resources()).thenReturn(Stream.of(unownedResource1));
@@ -445,79 +402,6 @@ class ResourceInitializerTest {
         // Then:
         verify(handlerA).ensure(List.of(ownedResource1));
         verify(handlerB).ensure(List.of(ownedResourceB));
-    }
-
-    @Test
-    void shouldValidateServiceSharedResourceGroups() {
-        // Given:
-        final ResourceA resource2 = resourceA(1, SharedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1, resource2));
-
-        // When:
-        initializer.service(List.of(component0));
-
-        // Then:
-        verify(handlerA).validate(List.of(sharedResource1, resource2));
-    }
-
-    @Test
-    void shouldValidateServiceUnownedResourceGroups() {
-        // Given:
-        final ResourceA resource2 = resourceA(1, UnownedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1, resource2));
-
-        // When:
-        initializer.service(List.of(component0));
-
-        // Then:
-        verify(handlerA).validate(List.of(unownedResource1, resource2));
-    }
-
-    @Test
-    void shouldValidateServiceUnmanagedResourceGroups() {
-        // Given:
-        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1));
-
-        // When:
-        initializer.service(List.of(component0));
-
-        // Then:
-        verify(handlerA).validate(List.of(unmanagedResource1));
-    }
-
-    @Test
-    void shouldValidateTestSharedResourceGroupsForComponentsUnderTestOnly() {
-        // Given:
-        final ResourceA resource2 = resourceA(1, SharedResource.class);
-        final ResourceA resource3 = resourceA(1, SharedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1, resource2));
-        when(component1.resources()).thenReturn(Stream.of(resource3));
-
-        // When:
-        initializer.test(List.of(component0), List.of(component1));
-
-        // Then:
-        verify(handlerA).validate(List.of(sharedResource1, resource2));
-    }
-
-    @Test
-    void shouldValidateTestUnmanagedResourceGroupsForComponentsUnderTestOnly() {
-        // Given:
-        final ResourceA resource2 = resourceA(1);
-        final ResourceA resource3 = resourceA(1);
-        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1, resource2));
-        when(component1.resources()).thenReturn(Stream.of(resource3));
-
-        // When:
-        initializer.test(List.of(component0), List.of(component1));
-
-        // Then:
-        verify(handlerA).validate(List.of(unmanagedResource1, resource2));
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private static ResourceA resourceA(final int id) {
-        return resourceA(id, withSettings());
     }
 
     private static ResourceA resourceA(final int id, final Class<?> extraInterface) {

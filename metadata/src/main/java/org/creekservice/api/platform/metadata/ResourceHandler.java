@@ -27,25 +27,6 @@ import java.util.Collection;
 public interface ResourceHandler<T extends ResourceDescriptor> {
 
     /**
-     * Validate a group of descriptors that should reference the same resource.
-     *
-     * <p>First the method performs a one time validation of each resource instance, called before
-     * any other methods, to allow the extension to validate each descriptor instance. This is
-     * necessary as resources are implemented by client code and therefore could be invalid.
-     *
-     * <p>Second, where the group contains more than one descriptor, the method validates that each
-     * descriptor in the group agrees on the details of the resource. If descriptors differ on the
-     * details it means something is out of whack in the system, and this needs resolving before
-     * things can continue.
-     *
-     * @param resourceGroup a collection of resource descriptors that should all describe the same
-     *     resource.
-     * @throws RuntimeException implementations should throw a suitable exception type on any
-     *     validation failures, providing enough information for users to resolve the issue.
-     */
-    void validate(Collection<? extends T> resourceGroup);
-
-    /**
      * Ensure the supplied {@code resources} exists.
      *
      * <p>Instructs an extension to ensure the resources described by the supplied descriptor exist
