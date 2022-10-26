@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.creekservice.api.base.annotation.VisibleForTesting;
 import org.creekservice.api.base.type.CodeLocation;
+import org.creekservice.api.observability.logging.structured.StructuredLogger;
+import org.creekservice.api.observability.logging.structured.StructuredLoggerFactory;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ResourceHandler;
@@ -51,6 +53,9 @@ import org.creekservice.internal.platform.resource.ComponentValidator;
  * https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization.
  */
 public final class ResourceInitializer {
+
+    private static final StructuredLogger LOGGER =
+            StructuredLoggerFactory.internalLogger(ResourceInitializer.class);
 
     private final ResourceHandlers handlers;
     private final ComponentValidator componentValidator;
@@ -86,6 +91,10 @@ public final class ResourceInitializer {
      * @param components components to search for resources.
      */
     public void init(final Collection<? extends ComponentDescriptor> components) {
+        LOGGER.debug(
+                "Initializing resources",
+                log -> log.with("stage", "init").with("components", componentNames(components)));
+
         ensureResources(
                 groupById(
                         components,
@@ -101,6 +110,10 @@ public final class ResourceInitializer {
      * @param components components to search for resources.
      */
     public void service(final Collection<? extends ComponentDescriptor> components) {
+        LOGGER.debug(
+                "Initializing resources",
+                log -> log.with("stage", "service").with("components", componentNames(components)));
+
         ensureResources(
                 groupById(
                         components,
@@ -121,6 +134,13 @@ public final class ResourceInitializer {
     public void test(
             final Collection<? extends ComponentDescriptor> componentsUnderTest,
             final Collection<? extends ComponentDescriptor> otherComponents) {
+
+        LOGGER.debug(
+                "Initializing resources",
+                log ->
+                        log.with("stage", "test")
+                                .with("components_under_test", componentNames(componentsUnderTest))
+                                .with("other_components", componentNames(otherComponents)));
 
         final Map<URI, List<ResourceDescriptor>> unowned =
                 groupById(
@@ -219,6 +239,11 @@ public final class ResourceInitializer {
 
     private static String formatResource(final ResourceDescriptor descriptor) {
         return "(" + CodeLocation.codeLocation(descriptor) + ") " + descriptor;
+    }
+
+    private static List<String> componentNames(
+            final Collection<? extends ComponentDescriptor> components) {
+        return components.stream().map(ComponentDescriptor::name).collect(Collectors.toList());
     }
 
     private static class ResourceDescriptorMismatchException extends RuntimeException {
