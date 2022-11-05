@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  * Defines metadata about a platform component
  *
  * <p>Creek system tests will look for components using {@link java.util.ServiceLoader} to load
- * instances of this type from the class & module paths. Therefore, to be loaded by Creek system
+ * instances of this type from the class and module paths. Therefore, to be loaded by Creek system
  * test the component must:
  *
  * <ul>

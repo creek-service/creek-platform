@@ -49,7 +49,9 @@ subprojects {
     apply(plugin = "maven-publish")
     apply(plugin = "org.javamodularity.moduleplugin")
 
-    if (!name.startsWith("test-")) {
+    if (name.startsWith("test-")) {
+        tasks.javadoc { onlyIf { false } }
+    } else {
         apply(plugin = "jacoco")
     }
 

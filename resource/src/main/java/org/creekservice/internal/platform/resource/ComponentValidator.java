@@ -32,12 +32,20 @@ import org.creekservice.api.platform.metadata.ServiceDescriptor;
 import org.creekservice.api.platform.metadata.SharedResource;
 import org.creekservice.api.platform.metadata.UnownedResource;
 
+/**
+ * Validator of components.
+ *
+ * <p>The validate performs basic validate on components to ensure they are valid,
+ * e.g. methods return valid values, i.e. non-null, not-empty, etc.
+ */
 public final class ComponentValidator {
 
     private static final Pattern CTRL_CHAR = Pattern.compile("\\p{Cntrl}");
 
-    public ComponentValidator() {}
-
+    /**
+     * Validate one or more components
+     * @param components the components to validate.
+     */
     public void validate(final ComponentDescriptor... components) {
         Arrays.stream(components).forEach(this::validateComponent);
     }
