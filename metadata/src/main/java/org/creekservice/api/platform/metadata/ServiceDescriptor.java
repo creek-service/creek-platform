@@ -35,6 +35,8 @@ public interface ServiceDescriptor extends ComponentDescriptor {
     /**
      * Allows customisation of the environment variables available to the service during system
      * testing.
+     *
+     * @return The key-value pairs to be set in the environment.
      */
     default Map<String, String> testEnvironment() {
         return Map.of();

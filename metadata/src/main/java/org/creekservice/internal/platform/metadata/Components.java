@@ -20,10 +20,18 @@ package org.creekservice.internal.platform.metadata;
 import java.util.Arrays;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 
+/** Util class for working with components. */
 public final class Components {
 
     private Components() {}
 
+    /**
+     * The default naming strategy
+     *
+     * @param descriptor the component descriptor
+     * @param supportedPostFixes supported class name post fixes
+     * @return the component name
+     */
     public static String defaultNaming(
             final ComponentDescriptor descriptor, final String... supportedPostFixes) {
         final String className = descriptor.getClass().getSimpleName();

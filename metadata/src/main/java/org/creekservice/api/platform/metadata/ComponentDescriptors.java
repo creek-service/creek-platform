@@ -21,11 +21,16 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
+/** Loader of {@link ComponentDescriptor} from the module and class path. */
 public final class ComponentDescriptors {
 
     private ComponentDescriptors() {}
 
-    /** Instantiate any extensions available at runtime. */
+    /**
+     * Instantiate any extensions available at runtime.
+     *
+     * @return discovered components.
+     */
     public static List<ComponentDescriptor> load() {
         return ServiceLoader.load(ComponentDescriptor.class).stream()
                 .map(ServiceLoader.Provider::get)
