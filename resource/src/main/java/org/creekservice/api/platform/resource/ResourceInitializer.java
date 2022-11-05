@@ -60,14 +60,13 @@ public final class ResourceInitializer {
     private final ResourceHandlers handlers;
     private final ComponentValidator componentValidator;
 
-    /**
-     * Type for retrieving resource handlers
-     */
+    /** Type for retrieving resource handlers */
     @FunctionalInterface
     public interface ResourceHandlers {
 
         /**
          * Get the handler for a specific type
+         *
          * @param type the type
          * @param <T> the type
          * @return the handler

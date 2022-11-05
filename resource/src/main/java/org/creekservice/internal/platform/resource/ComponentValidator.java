@@ -35,8 +35,8 @@ import org.creekservice.api.platform.metadata.UnownedResource;
 /**
  * Validator of components.
  *
- * <p>The validate performs basic validate on components to ensure they are valid,
- * e.g. methods return valid values, i.e. non-null, not-empty, etc.
+ * <p>The validate performs basic validate on components to ensure they are valid, e.g. methods
+ * return valid values, i.e. non-null, not-empty, etc.
  */
 public final class ComponentValidator {
 
@@ -44,6 +44,7 @@ public final class ComponentValidator {
 
     /**
      * Validate one or more components
+     *
      * @param components the components to validate.
      */
     public void validate(final ComponentDescriptor... components) {
