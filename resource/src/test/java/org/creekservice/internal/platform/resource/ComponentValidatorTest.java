@@ -51,7 +51,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 class ComponentValidatorTest {
 
     private static final Pattern CODE_LOCATION =
-            Pattern.compile(".*\\(file:/.*creek-platform-metadata-.*\\.jar\\).*", Pattern.DOTALL);
+            Pattern.compile(".*\\(file:/.*metadata-.*\\.jar\\).*", Pattern.DOTALL);
 
     @Mock(name = "jane")
     private ServiceDescriptor service;
