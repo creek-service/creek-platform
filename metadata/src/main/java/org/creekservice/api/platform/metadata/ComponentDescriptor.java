@@ -46,17 +46,23 @@ public interface ComponentDescriptor {
         return defaultNaming(this, "Descriptor");
     }
 
-    /** @return the inputs to the component, e.g. Kafka topics it consumes. */
+    /**
+     * @return the inputs to the component, e.g. Kafka topics it consumes.
+     */
     default Collection<ComponentInput> inputs() {
         return List.of();
     }
 
-    /** @return the internals to the component, e.g. changelog or repartition Kafka topics. */
+    /**
+     * @return the internals to the component, e.g. changelog or repartition Kafka topics.
+     */
     default Collection<ComponentInternal> internals() {
         return List.of();
     }
 
-    /** @return the outputs from the component, e.g. the Kafka topics it outputs too */
+    /**
+     * @return the outputs from the component, e.g. the Kafka topics it outputs too
+     */
     default Collection<ComponentOutput> outputs() {
         return List.of();
     }
