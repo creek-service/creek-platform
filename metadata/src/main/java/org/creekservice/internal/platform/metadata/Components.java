@@ -16,7 +16,6 @@
 
 package org.creekservice.internal.platform.metadata;
 
-
 import java.util.Arrays;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 

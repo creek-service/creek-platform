@@ -16,7 +16,6 @@
 
 package org.creekservice.api.platform.metadata;
 
-
 import java.util.Map;
 
 /** Type defining metadata data about a service. */

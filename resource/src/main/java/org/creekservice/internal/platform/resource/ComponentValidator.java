@@ -16,7 +16,6 @@
 
 package org.creekservice.internal.platform.resource;
 
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
