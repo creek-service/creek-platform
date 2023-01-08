@@ -2,7 +2,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/creek-service/creek-platform/badge.svg?branch=main)](https://coveralls.io/github/creek-service/creek-platform?branch=main)
 [![build](https://github.com/creek-service/creek-platform/actions/workflows/build.yml/badge.svg)](https://github.com/creek-service/creek-platform/actions/workflows/build.yml)
 [![CodeQL](https://github.com/creek-service/creek-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/creek-service/creek-platform/actions/workflows/codeql.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/org.creekservice/creek-platform-metadata.svg)](https://central.sonatype.dev/search?q=creek-platform-*)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/creek-service/creek-platform/badge)](https://api.securityscorecards.dev/projects/github.com/creek-service/creek-platform)
+[![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/6896/badge)](https://bestpractices.coreinfrastructure.org/projects/6896)
 
 # Creek Platform
 
