@@ -8,7 +8,14 @@
 
 # Creek Platform
 
-The foundation of the Creek platform.
+This repository defines base types, generally interfaces, used to define architectural components, 
+such as a 'service' or an 'aggregate', and the resources they use.  Additionally, it defines
+a library for inspecting components, extracting resources and determining which resources 
+need initialising for which components.
+
+Users of Creek will implement the service and aggregate descriptor interfaces defined in this repository.
+They should not directly implement the base resource interfaces. These are designed to be extended by 
+extensions to Creek.
 
 See [CreekService.org](https://www.creekservice.org) for info on Creek Service.
 
@@ -16,5 +23,5 @@ See [CreekService.org](https://www.creekservice.org) for info on Creek Service.
 
 The repo contains the following modules:
 
-* [metadata](metadata): A dependency-free library that defines the types used to describe platform components.
-* [resource](resource): A library for working with descriptors and resources.
+* [metadata](metadata): A dependency-free library that defines the interfaces used to describe platform components and resources.
+* [resource](resource): A common library for working with descriptors and resources.
