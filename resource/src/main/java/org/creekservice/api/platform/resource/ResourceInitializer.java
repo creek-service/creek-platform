@@ -50,7 +50,7 @@ import org.creekservice.internal.platform.resource.ComponentValidator;
  * <p>The initializer will also validate the supplied component and resource descriptors.
  *
  * <p>For more information on resource initialization, see
- * https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization.
+ * <a href="https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization">the docs</a>.
  */
 public final class ResourceInitializer {
 
@@ -272,8 +272,8 @@ public final class ResourceInitializer {
         ResourceDescriptorMismatchInitializationException(
                 final String type, final List<? extends ResourceDescriptor> descriptors) {
             super(
-                    "Resource descriptors for resource are tagged with incompatible resource initialization marker "
-                            + "interfaces. First descriptor is marked as a "
+                    "Resource descriptors for resource are tagged with incompatible resource"
+                            + " initialization marker interfaces. First descriptor is marked as a "
                             + type
                             + " resource, "
                             + "but at least one subsequent descriptor was not "

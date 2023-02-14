@@ -236,7 +236,8 @@ class ComponentValidatorTest {
         assertThat(
                 e.getMessage(),
                 containsString(
-                        "Aggregate should not expose internal resources. internals: [internal], component: bob"));
+                        "Aggregate should not expose internal resources. internals: [internal],"
+                                + " component: bob"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
@@ -255,7 +256,8 @@ class ComponentValidatorTest {
         assertThat(
                 e.getMessage(),
                 containsString(
-                        "Aggregate should only expose OwnedResource. not_owned: [unowned], component: bob"));
+                        "Aggregate should only expose OwnedResource. not_owned: [unowned],"
+                                + " component: bob"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }
@@ -272,9 +274,9 @@ class ComponentValidatorTest {
         assertThat(
                 e.getMessage(),
                 containsString(
-                        "resource can implement at-most one ResourceInitialization marker interface, "
-                                + "but was: [OwnedResource, SharedResource], "
-                                + "resource: bad:resource"));
+                        "resource can implement at-most one ResourceInitialization marker"
+                                + " interface, but was: [OwnedResource, SharedResource], resource:"
+                                + " bad:resource"));
         assertThat(e.getMessage(), containsString("component: bob"));
         assertThat(e.getMessage(), matchesRegex(CODE_LOCATION));
     }

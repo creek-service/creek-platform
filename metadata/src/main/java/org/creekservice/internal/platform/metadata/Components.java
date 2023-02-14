@@ -41,7 +41,8 @@ public final class Components {
                         .orElseThrow(
                                 () ->
                                         new UnsupportedOperationException(
-                                                "Non-standard class name: either override name() or use standard naming"));
+                                                "Non-standard class name: either override name() or"
+                                                        + " use standard naming"));
 
         final String name =
                 className

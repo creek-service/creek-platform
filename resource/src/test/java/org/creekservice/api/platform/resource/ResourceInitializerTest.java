@@ -149,10 +149,10 @@ class ResourceInitializerTest {
         assertThat(
                 e.getMessage(),
                 startsWith(
-                        "Resource descriptors for resource are tagged with incompatible resource initialization "
-                                + "marker interfaces. First descriptor is marked as a shared resource, "
-                                + "but at least one subsequent descriptor was not shared. "
-                                + "resource: a://1, descriptors: "));
+                        "Resource descriptors for resource are tagged with incompatible resource"
+                            + " initialization marker interfaces. First descriptor is marked as a"
+                            + " shared resource, but at least one subsequent descriptor was not"
+                            + " shared. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("sharedResource1"));
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
@@ -173,10 +173,10 @@ class ResourceInitializerTest {
         assertThat(
                 e.getMessage(),
                 startsWith(
-                        "Resource descriptors for resource are tagged with incompatible resource initialization "
-                                + "marker interfaces. First descriptor is marked as a unmanaged resource, "
-                                + "but at least one subsequent descriptor was not unmanaged. "
-                                + "resource: a://1, descriptors: "));
+                        "Resource descriptors for resource are tagged with incompatible resource"
+                            + " initialization marker interfaces. First descriptor is marked as a"
+                            + " unmanaged resource, but at least one subsequent descriptor was not"
+                            + " unmanaged. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("unmanagedResource1"));
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
@@ -197,10 +197,10 @@ class ResourceInitializerTest {
         assertThat(
                 e.getMessage(),
                 startsWith(
-                        "Resource descriptors for resource are tagged with incompatible resource initialization "
-                                + "marker interfaces. First descriptor is marked as a owned or unowned resource, "
-                                + "but at least one subsequent descriptor was not owned or unowned. "
-                                + "resource: a://1, descriptors: "));
+                        "Resource descriptors for resource are tagged with incompatible resource"
+                            + " initialization marker interfaces. First descriptor is marked as a"
+                            + " owned or unowned resource, but at least one subsequent descriptor"
+                            + " was not owned or unowned. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("ownedResource1"));
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
@@ -221,10 +221,10 @@ class ResourceInitializerTest {
         assertThat(
                 e.getMessage(),
                 startsWith(
-                        "Resource descriptors for resource are tagged with incompatible resource initialization "
-                                + "marker interfaces. First descriptor is marked as a owned or unowned resource, "
-                                + "but at least one subsequent descriptor was not owned or unowned. "
-                                + "resource: a://1, descriptors: "));
+                        "Resource descriptors for resource are tagged with incompatible resource"
+                            + " initialization marker interfaces. First descriptor is marked as a"
+                            + " owned or unowned resource, but at least one subsequent descriptor"
+                            + " was not owned or unowned. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("unownedResource1"));
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
@@ -320,7 +320,8 @@ class ResourceInitializerTest {
         assertThat(
                 e.getMessage(),
                 startsWith(
-                        "No component provided a creatable descriptor for resource id: a://1, descriptors: "));
+                        "No component provided a creatable descriptor for resource id: a://1,"
+                                + " descriptors: "));
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
 
