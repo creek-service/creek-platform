@@ -151,7 +151,8 @@ public final class ComponentValidator {
                         .collect(Collectors.toList());
         if (initialisation.size() > 1) {
             throw new InvalidDescriptorException(
-                    "resource can implement at-most one ResourceInitialization marker interface, but was: "
+                    "resource can implement at-most one ResourceInitialization marker interface,"
+                            + " but was: "
                             + initialisation,
                     resource,
                     component);
