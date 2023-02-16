@@ -49,8 +49,9 @@ import org.creekservice.internal.platform.resource.ComponentValidator;
  *
  * <p>The initializer will also validate the supplied component and resource descriptors.
  *
- * <p>For more information on resource initialization, see
- * <a href="https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization">the docs</a>.
+ * <p>For more information on resource initialization, see <a
+ * href="https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization">the
+ * docs</a>.
  */
 public final class ResourceInitializer {
 
