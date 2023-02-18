@@ -23,5 +23,5 @@ See [CreekService.org](https://www.creekservice.org) for info on Creek Service.
 
 The repo contains the following modules:
 
-* [metadata](metadata): A dependency-free library that defines the interfaces used to describe platform components and resources.
-* [resource](resource): A common library for working with descriptors and resources.
+* **[metadata](metadata)** [[JavaDocs](https://javadoc.io/doc/org.creekservice/creek-platform-metadata)]: A dependency-free library that defines the interfaces used to describe platform components and resources.
+* **[resource](resource)** [[JavaDocs](https://javadoc.io/doc/org.creekservice/creek-platform-resource)]: A common library for working with descriptors and resources.

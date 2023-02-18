@@ -1,3 +1,5 @@
+[![javadoc](https://javadoc.io/badge2/org.creekservice/creek-platform-metadata/javadoc.svg)](https://javadoc.io/doc/org.creekservice/creek-platform-metadata)
+
 # Creek Platform Metadata
 A dependency-free library that defines the types used to describe platform components.
 
