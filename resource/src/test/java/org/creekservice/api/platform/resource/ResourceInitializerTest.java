@@ -321,7 +321,7 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "No component provided a creatable descriptor for resource id: a://1,"
-                                + " descriptors: "));
+                                + " known_creatable_descriptors: "));
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
 

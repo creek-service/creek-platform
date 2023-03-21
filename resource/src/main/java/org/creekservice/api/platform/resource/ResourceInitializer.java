@@ -288,7 +288,7 @@ public final class ResourceInitializer {
             super(
                     "No component provided a creatable descriptor for resource id: "
                             + descriptors.get(0).id()
-                            + ", descriptors: "
+                            + ", known_creatable_descriptors: "
                             + formatResource(descriptors));
         }
     }
