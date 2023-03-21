@@ -405,6 +405,31 @@ class ResourceInitializerTest {
         verify(handlerB).ensure(List.of(ownedResourceB));
     }
 
+    @Test
+    void shouldThrowOnUnknownResourceType() {
+        // Given:
+        final NullPointerException expected = new NullPointerException("unknown");
+        when(handlers.get(any())).thenThrow(expected);
+        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
+
+        // When:
+        final Exception e =
+                assertThrows(
+                        NullPointerException.class, () -> initializer.init(List.of(component0)));
+
+        // Then:
+        assertThat(e, is(sameInstance(expected)));
+    }
+
+    @Test
+    void shouldThrowOnInvalidComponentUsingActualValidator() {
+        // Given:
+        initializer = ResourceInitializer.resourceInitializer(handlers);
+
+        // Then:
+        assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
+    }
+
     private static ResourceA resourceA(final int id, final Class<?> extraInterface) {
         return resourceA(id, withSettings().extraInterfaces(extraInterface));
     }

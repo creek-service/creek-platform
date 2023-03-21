@@ -71,6 +71,7 @@ public final class ResourceInitializer {
          * @param type the type
          * @param <T> the type
          * @return the handler
+         * @throws RuntimeException on unknown resource type
          */
         <T extends ResourceDescriptor> ResourceHandler<T> get(Class<T> type);
     }
