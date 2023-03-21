@@ -71,6 +71,7 @@ public final class ResourceInitializer {
          * @param type the type
          * @param <T> the type
          * @return the handler
+         * @throws RuntimeException on unknown resource type
          */
         <T extends ResourceDescriptor> ResourceHandler<T> get(Class<T> type);
     }
@@ -288,7 +289,7 @@ public final class ResourceInitializer {
             super(
                     "No component provided a creatable descriptor for resource id: "
                             + descriptors.get(0).id()
-                            + ", descriptors: "
+                            + ", known_creatable_descriptors: "
                             + formatResource(descriptors));
         }
     }

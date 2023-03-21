@@ -321,7 +321,7 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "No component provided a creatable descriptor for resource id: a://1,"
-                                + " descriptors: "));
+                                + " known_creatable_descriptors: "));
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
 
@@ -403,6 +403,31 @@ class ResourceInitializerTest {
         // Then:
         verify(handlerA).ensure(List.of(ownedResource1));
         verify(handlerB).ensure(List.of(ownedResourceB));
+    }
+
+    @Test
+    void shouldThrowOnUnknownResourceType() {
+        // Given:
+        final NullPointerException expected = new NullPointerException("unknown");
+        when(handlers.get(any())).thenThrow(expected);
+        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
+
+        // When:
+        final Exception e =
+                assertThrows(
+                        NullPointerException.class, () -> initializer.init(List.of(component0)));
+
+        // Then:
+        assertThat(e, is(sameInstance(expected)));
+    }
+
+    @Test
+    void shouldThrowOnInvalidComponentUsingActualValidator() {
+        // Given:
+        initializer = ResourceInitializer.resourceInitializer(handlers);
+
+        // Then:
+        assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
     }
 
     private static ResourceA resourceA(final int id, final Class<?> extraInterface) {
