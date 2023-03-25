@@ -152,6 +152,6 @@ initialization:
 The [Init tool](https://github.com/creek-service/creek-platform/issues/7) can be used to manually initialize resources 
 at these different stages.
 
-[1]: https://github.com/creek-service/creek-kafka/tree/main/metadata
+[1]: https://www.creekservice.org/creek-kafka/#metadata-types
 [2]: https://github.com/creek-service/creek-service/issues/68
 [3]: https://github.com/creek-service/creek-system-test
