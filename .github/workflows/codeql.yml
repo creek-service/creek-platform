@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze
+    if: ${{ github.run_number != 1 }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -37,7 +37,11 @@ jobs:
         with:
           java-version: '17'
           distribution: 'adopt'
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@a4cf152f482c7ca97ef56ead29bf08bcd953284c # v2.7.0
+        with:
+          gradle-home-cache-cleanup: true
 
       - name: Build
         run: ./gradlew test
