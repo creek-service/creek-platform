@@ -36,8 +36,8 @@ import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.observability.logging.structured.StructuredLogger;
 import org.creekservice.api.observability.logging.structured.StructuredLoggerFactory;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
+import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
-import org.creekservice.api.platform.metadata.ResourceHandler;
 import org.creekservice.internal.platform.resource.ComponentValidator;
 
 /**
@@ -58,38 +58,42 @@ public final class ResourceInitializer {
     private static final StructuredLogger LOGGER =
             StructuredLoggerFactory.internalLogger(ResourceInitializer.class);
 
-    private final ResourceHandlers handlers;
+    private final ResourceCreator resourceCreator;
     private final ComponentValidator componentValidator;
 
-    /** Type for retrieving resource handlers */
+    /** Type for ensuring external resources exist */
     @FunctionalInterface
-    public interface ResourceHandlers {
+    public interface ResourceCreator {
 
         /**
-         * Get the handler for a specific type
+         * Get the handler for a specific type.
          *
-         * @param type the type
-         * @param <T> the type
-         * @return the handler
+         * <p>All {@code creatableResources} will be of the same type.
+         *
+         * @param creatableResources the resource instances to ensure exists and are initialized.
+         *     Resources passed will be {@link ResourceDescriptor#isCreatable creatable}.
+         * @param <T> the creatable resource descriptor type
          * @throws RuntimeException on unknown resource type
          */
-        <T extends ResourceDescriptor> ResourceHandler<T> get(Class<T> type);
+        <T extends ResourceDescriptor & OwnedResource> void ensure(
+                Collection<T> creatableResources);
     }
 
     /**
      * Create an initializer instance.
      *
-     * @param handlers accessor to resource handlers, as exposed by Creek extensions.
+     * @param resourceCreator callback used to ensure external resources exist, as exposed by Creek
+     *     extensions.
      * @return an initializer instance.
      */
-    public static ResourceInitializer resourceInitializer(final ResourceHandlers handlers) {
-        return new ResourceInitializer(handlers, new ComponentValidator());
+    public static ResourceInitializer resourceInitializer(final ResourceCreator resourceCreator) {
+        return new ResourceInitializer(resourceCreator, new ComponentValidator());
     }
 
     @VisibleForTesting
     ResourceInitializer(
-            final ResourceHandlers handlers, final ComponentValidator componentValidator) {
-        this.handlers = requireNonNull(handlers, "handlers");
+            final ResourceCreator resourceCreator, final ComponentValidator componentValidator) {
+        this.resourceCreator = requireNonNull(resourceCreator, "resourceCreator");
         this.componentValidator = requireNonNull(componentValidator, "componentValidator");
     }
 
@@ -173,12 +177,14 @@ public final class ResourceInitializer {
         ensureResources(stream);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void ensureResources(final Stream<List<ResourceDescriptor>> resGroups) {
         resGroups
                 .peek(this::validateResourceGroup)
                 .map(this::creatableDescriptor)
-                .collect(groupingBy(this::resourceHandler))
-                .forEach(ResourceHandler::ensure);
+                .collect(groupingBy(Object::getClass))
+                .values()
+                .forEach(creatableResources -> resourceCreator.ensure((List) creatableResources));
     }
 
     private ResourceDescriptor creatableDescriptor(final List<ResourceDescriptor> resGroup) {
@@ -235,11 +241,6 @@ public final class ResourceInitializer {
                         "owned or unowned", resourceGroup);
             }
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends ResourceDescriptor> ResourceHandler<T> resourceHandler(final T resource) {
-        return handlers.get((Class<T>) resource.getClass());
     }
 
     private static String formatResource(final List<? extends ResourceDescriptor> descriptors) {

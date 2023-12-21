@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
-import org.creekservice.api.platform.metadata.ResourceHandler;
 import org.creekservice.api.platform.metadata.SharedResource;
 import org.creekservice.api.platform.metadata.UnownedResource;
 import org.creekservice.internal.platform.resource.ComponentValidator;
@@ -58,9 +57,7 @@ class ResourceInitializerTest {
     @Mock private ComponentValidator validator;
     @Mock private ComponentDescriptor component0;
     @Mock private ComponentDescriptor component1;
-    @Mock private ResourceInitializer.ResourceHandlers handlers;
-    @Mock private ResourceHandler<ResourceDescriptor> handlerA;
-    @Mock private ResourceHandler<ResourceDescriptor> handlerB;
+    @Mock private ResourceInitializer.ResourceCreator resourceCreator;
 
     @Mock(extraInterfaces = SharedResource.class)
     private ResourceA sharedResource1;
@@ -77,9 +74,7 @@ class ResourceInitializerTest {
 
     @BeforeEach
     void setUp() {
-        initializer = new ResourceInitializer(handlers, validator);
-
-        when(handlers.get(any())).thenReturn(handlerA);
+        initializer = new ResourceInitializer(resourceCreator, validator);
 
         when(sharedResource1.id()).thenReturn(A1_ID);
         when(ownedResource1.id()).thenReturn(A1_ID);
@@ -239,7 +234,7 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(handlers, never()).get(any());
+        verify(resourceCreator, never()).ensure(any());
     }
 
     @Test
@@ -254,7 +249,7 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0, component1));
 
         // Then:
-        verify(handlerA, never()).ensure(any());
+        verify(resourceCreator, never()).ensure(any());
     }
 
     @Test
@@ -271,7 +266,7 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(handlerA, never()).ensure(any());
+        verify(resourceCreator, never()).ensure(any());
     }
 
     @Test
@@ -285,7 +280,7 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0, component1), List.of());
 
         // Then:
-        verify(handlerA, never()).ensure(any());
+        verify(resourceCreator, never()).ensure(any());
     }
 
     @Test
@@ -301,7 +296,7 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(handlers, never()).get(any());
+        verify(resourceCreator, never()).ensure(any());
     }
 
     @Test
@@ -325,6 +320,7 @@ class ResourceInitializerTest {
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureSharedResource() {
         // Given:
@@ -336,9 +332,10 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(handlerA).ensure(List.of(sharedResource1, sharedResource2));
+        verify(resourceCreator).ensure((List) List.of(sharedResource1, sharedResource2));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureOwnedResource() {
         // Given:
@@ -350,9 +347,10 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0, component1));
 
         // Then:
-        verify(handlerA).ensure(List.of(ownedResource1, ownedResource2));
+        verify(resourceCreator).ensure((List) List.of(ownedResource1, ownedResource2));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureUnownedResource() {
         // Given:
@@ -365,14 +363,14 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(handlerA).ensure(List.of(ownedResource2));
+        verify(resourceCreator).ensure((List) List.of(ownedResource2));
     }
 
     @Test
     void shouldThrowIfEnsureThrows() {
         // Given:
         final RuntimeException expected = new RuntimeException("boom");
-        doThrow(expected).when(handlerA).ensure(any());
+        doThrow(expected).when(resourceCreator).ensure(any());
         when(component0.resources()).thenReturn(Stream.of(ownedResource1));
 
         // When:
@@ -384,16 +382,10 @@ class ResourceInitializerTest {
         assertThat(e, is(sameInstance(expected)));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureGroupingByHandler() {
         // Given
-        when(handlers.get(any()))
-                .thenAnswer(
-                        inv ->
-                                ResourceA.class.isAssignableFrom(inv.getArgument(0))
-                                        ? handlerA
-                                        : handlerB);
-
         final ResourceB ownedResourceB = resourceB(OwnedResource.class);
         when(component0.resources()).thenReturn(Stream.of(ownedResource1, ownedResourceB));
 
@@ -401,15 +393,15 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0));
 
         // Then:
-        verify(handlerA).ensure(List.of(ownedResource1));
-        verify(handlerB).ensure(List.of(ownedResourceB));
+        verify(resourceCreator).ensure((List) List.of(ownedResource1));
+        verify(resourceCreator).ensure((List) List.of(ownedResourceB));
     }
 
     @Test
     void shouldThrowOnUnknownResourceType() {
         // Given:
         final NullPointerException expected = new NullPointerException("unknown");
-        when(handlers.get(any())).thenThrow(expected);
+        doThrow(expected).when(resourceCreator).ensure(any());
         when(component0.resources()).thenReturn(Stream.of(sharedResource1));
 
         // When:
@@ -424,7 +416,7 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowOnInvalidComponentUsingActualValidator() {
         // Given:
-        initializer = ResourceInitializer.resourceInitializer(handlers);
+        initializer = ResourceInitializer.resourceInitializer(resourceCreator);
 
         // Then:
         assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
