@@ -58,42 +58,58 @@ public final class ResourceInitializer {
     private static final StructuredLogger LOGGER =
             StructuredLoggerFactory.internalLogger(ResourceInitializer.class);
 
-    private final ResourceCreator resourceCreator;
+    private final Callbacks callbacks;
     private final ComponentValidator componentValidator;
 
-    /** Type for ensuring external resources exist */
-    @FunctionalInterface
-    public interface ResourceCreator {
+    /** Type for supplying callbacks to the resource initializer. */
+    public interface Callbacks {
 
         /**
-         * Get the handler for a specific type.
+         * Callback to validate that all the supplied {@code resources} consistently represent the
+         * same resource.
+         *
+         * <p>There is often multiple resource descriptors describing the same resource present in
+         * the system. For example, both input and output descriptors for the same resource. Any
+         * inconsistencies in the details of the resource between these descriptors can lead to
+         * bugs.
+         *
+         * @param type the type of the {@code resources}.
+         * @param resources the set of resources that all share the same {@link
+         *     ResourceDescriptor#id()}.
+         * @param <T> the resource descriptor type
+         * @throws RuntimeException with the details of any inconsistencies.
+         */
+        <T extends ResourceDescriptor> void validate(Class<T> type, Collection<T> resources);
+
+        /**
+         * Callback to ensure the supplied {@code creatableResources} exist.
          *
          * <p>All {@code creatableResources} will be of the same type.
          *
+         * @param type the type of the {@code creatableResources}.
          * @param creatableResources the resource instances to ensure exists and are initialized.
          *     Resources passed will be {@link ResourceDescriptor#isCreatable creatable}.
          * @param <T> the creatable resource descriptor type
          * @throws RuntimeException on unknown resource type
          */
         <T extends ResourceDescriptor & OwnedResource> void ensure(
-                Collection<T> creatableResources);
+                Class<T> type, Collection<T> creatableResources);
     }
 
     /**
      * Create an initializer instance.
      *
-     * @param resourceCreator callback used to ensure external resources exist, as exposed by Creek
-     *     extensions.
+     * @param callbacks callbacks used to ensure external resources exist and are valid, as exposed
+     *     by Creek extensions.
      * @return an initializer instance.
      */
-    public static ResourceInitializer resourceInitializer(final ResourceCreator resourceCreator) {
-        return new ResourceInitializer(resourceCreator, new ComponentValidator());
+    public static ResourceInitializer resourceInitializer(final Callbacks callbacks) {
+        return new ResourceInitializer(callbacks, new ComponentValidator());
     }
 
     @VisibleForTesting
-    ResourceInitializer(
-            final ResourceCreator resourceCreator, final ComponentValidator componentValidator) {
-        this.resourceCreator = requireNonNull(resourceCreator, "resourceCreator");
+    ResourceInitializer(final Callbacks callbacks, final ComponentValidator componentValidator) {
+        this.callbacks = requireNonNull(callbacks, "callbacks");
         this.componentValidator = requireNonNull(componentValidator, "componentValidator");
     }
 
@@ -113,8 +129,7 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared),
-                        false));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared)));
     }
 
     /**
@@ -132,8 +147,7 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned),
-                        true));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned)));
     }
 
     /**
@@ -163,18 +177,15 @@ public final class ResourceInitializer {
                                 resGroup ->
                                         resGroup.stream().anyMatch(ResourceDescriptor::isUnowned)
                                                 && resGroup.stream()
-                                                        .noneMatch(ResourceDescriptor::isOwned),
-                                true)
+                                                        .noneMatch(ResourceDescriptor::isOwned))
                         .collect(Collectors.toMap(group -> group.get(0).id(), Function.identity()));
 
         groupById(
                         otherComponents,
-                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())),
-                        false)
+                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())))
                 .forEach(resGroup -> unowned.get(resGroup.get(0).id()).addAll(resGroup));
 
-        final Stream<List<ResourceDescriptor>> stream = unowned.values().stream();
-        ensureResources(stream);
+        ensureResources(unowned.values().stream());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -184,7 +195,11 @@ public final class ResourceInitializer {
                 .map(this::creatableDescriptor)
                 .collect(groupingBy(Object::getClass))
                 .values()
-                .forEach(creatableResources -> resourceCreator.ensure((List) creatableResources));
+                .forEach(
+                        creatableResources ->
+                                callbacks.ensure(
+                                        (Class) creatableResources.get(0).getClass(),
+                                        (List) creatableResources));
     }
 
     private ResourceDescriptor creatableDescriptor(final List<ResourceDescriptor> resGroup) {
@@ -196,16 +211,11 @@ public final class ResourceInitializer {
 
     private Stream<List<ResourceDescriptor>> groupById(
             final Collection<? extends ComponentDescriptor> components,
-            final Predicate<List<ResourceDescriptor>> groupPredicate,
-            final boolean validate) {
+            final Predicate<List<ResourceDescriptor>> groupPredicate) {
         final Map<URI, List<ResourceDescriptor>> grouped =
                 components.stream()
                         .flatMap(this::getResources)
                         .collect(groupingBy(ResourceDescriptor::id));
-
-        if (validate) {
-            grouped.values().forEach(this::validateResourceGroup);
-        }
 
         return grouped.values().stream().filter(groupPredicate);
     }
@@ -221,14 +231,16 @@ public final class ResourceInitializer {
      *
      * @param resourceGroup the group of descriptors that describe the same resource.
      */
+    @SuppressWarnings("unchecked")
     private <T extends ResourceDescriptor> void validateResourceGroup(final List<T> resourceGroup) {
-        if (isShared(resourceGroup.get(0))) {
+        final T first = resourceGroup.get(0);
+        if (isShared(first)) {
             // if shared, all should be shared.
             if (resourceGroup.stream().anyMatch(r -> !isShared(r))) {
                 throw new ResourceDescriptorMismatchInitializationException(
                         "shared", resourceGroup);
             }
-        } else if (isUnmanaged(resourceGroup.get(0))) {
+        } else if (isUnmanaged(first)) {
             // if unmanaged, all should be unmanaged.
             if (resourceGroup.stream().anyMatch(r -> !isUnmanaged(r))) {
                 throw new ResourceDescriptorMismatchInitializationException(
@@ -241,6 +253,8 @@ public final class ResourceInitializer {
                         "owned or unowned", resourceGroup);
             }
         }
+
+        callbacks.validate((Class<T>) first.getClass(), resourceGroup);
     }
 
     private static String formatResource(final List<? extends ResourceDescriptor> descriptors) {

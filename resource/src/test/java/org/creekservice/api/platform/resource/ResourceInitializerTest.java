@@ -57,7 +57,7 @@ class ResourceInitializerTest {
     @Mock private ComponentValidator validator;
     @Mock private ComponentDescriptor component0;
     @Mock private ComponentDescriptor component1;
-    @Mock private ResourceInitializer.ResourceCreator resourceCreator;
+    @Mock private ResourceInitializer.Callbacks callbacks;
 
     @Mock(extraInterfaces = SharedResource.class)
     private ResourceA sharedResource1;
@@ -74,7 +74,7 @@ class ResourceInitializerTest {
 
     @BeforeEach
     void setUp() {
-        initializer = new ResourceInitializer(resourceCreator, validator);
+        initializer = new ResourceInitializer(callbacks, validator);
 
         when(sharedResource1.id()).thenReturn(A1_ID);
         when(ownedResource1.id()).thenReturn(A1_ID);
@@ -224,6 +224,76 @@ class ResourceInitializerTest {
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
 
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldCallbackValidateEachResGroupOnInit() {
+        // Given:
+        final ResourceA sharedResource2 = resourceA(1, SharedResource.class);
+        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
+        when(component1.resources()).thenReturn(Stream.of(sharedResource2));
+
+        // When:
+        initializer.init(List.of(component0, component1));
+
+        // Then:
+        verify(callbacks)
+                .validate(
+                        (Class<ResourceA>) sharedResource1.getClass(),
+                        List.of(sharedResource1, sharedResource2));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldCallbackValidateEachResGroupOnService() {
+        // Given:
+        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
+        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+
+        // When:
+        initializer.service(List.of(component0, component1));
+
+        // Then:
+        verify(callbacks)
+                .validate(
+                        (Class<ResourceA>) ownedResource1.getClass(),
+                        List.of(ownedResource1, unownedResource1));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldCallbackValidateEachResGroupOnTest() {
+        // Given:
+        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
+        when(component1.resources()).thenReturn(Stream.of(ownedResource1));
+
+        // When:
+        initializer.test(List.of(component0), List.of(component1));
+
+        // Then:
+        verify(callbacks)
+                .validate(
+                        (Class<ResourceA>) unownedResource1.getClass(),
+                        List.of(unownedResource1, ownedResource1));
+    }
+
+    @Test
+    void shouldThrowIfValidateCallbackThrows() {
+        // Given:
+        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
+        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        final RuntimeException expected = new RuntimeException("BIG BADA BOOM");
+        doThrow(expected).when(callbacks).validate(any(), any());
+
+        // When:
+        final Exception e =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> initializer.service(List.of(component0, component1)));
+
+        // Then:
+        assertThat(e, is(expected));
+    }
+
     @Test
     void shouldNotInitializeAnyResourceOnInitIfNoSharedResources() {
         // Given:
@@ -234,7 +304,7 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(resourceCreator, never()).ensure(any());
+        verify(callbacks, never()).ensure(any(), any());
     }
 
     @Test
@@ -249,7 +319,7 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0, component1));
 
         // Then:
-        verify(resourceCreator, never()).ensure(any());
+        verify(callbacks, never()).ensure(any(), any());
     }
 
     @Test
@@ -266,7 +336,7 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(resourceCreator, never()).ensure(any());
+        verify(callbacks, never()).ensure(any(), any());
     }
 
     @Test
@@ -280,7 +350,7 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0, component1), List.of());
 
         // Then:
-        verify(resourceCreator, never()).ensure(any());
+        verify(callbacks, never()).ensure(any(), any());
     }
 
     @Test
@@ -296,7 +366,7 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(resourceCreator, never()).ensure(any());
+        verify(callbacks, never()).ensure(any(), any());
     }
 
     @Test
@@ -332,7 +402,10 @@ class ResourceInitializerTest {
         initializer.init(List.of(component0, component1));
 
         // Then:
-        verify(resourceCreator).ensure((List) List.of(sharedResource1, sharedResource2));
+        verify(callbacks)
+                .ensure(
+                        (Class) sharedResource1.getClass(),
+                        (List) List.of(sharedResource1, sharedResource2));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -347,7 +420,10 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0, component1));
 
         // Then:
-        verify(resourceCreator).ensure((List) List.of(ownedResource1, ownedResource2));
+        verify(callbacks)
+                .ensure(
+                        (Class) ownedResource1.getClass(),
+                        (List) List.of(ownedResource1, ownedResource2));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -363,14 +439,14 @@ class ResourceInitializerTest {
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
-        verify(resourceCreator).ensure((List) List.of(ownedResource2));
+        verify(callbacks).ensure((Class) ownedResource2.getClass(), (List) List.of(ownedResource2));
     }
 
     @Test
     void shouldThrowIfEnsureThrows() {
         // Given:
         final RuntimeException expected = new RuntimeException("boom");
-        doThrow(expected).when(resourceCreator).ensure(any());
+        doThrow(expected).when(callbacks).ensure(any(), any());
         when(component0.resources()).thenReturn(Stream.of(ownedResource1));
 
         // When:
@@ -393,15 +469,15 @@ class ResourceInitializerTest {
         initializer.service(List.of(component0));
 
         // Then:
-        verify(resourceCreator).ensure((List) List.of(ownedResource1));
-        verify(resourceCreator).ensure((List) List.of(ownedResourceB));
+        verify(callbacks).ensure((Class) ownedResource1.getClass(), (List) List.of(ownedResource1));
+        verify(callbacks).ensure((Class) ownedResourceB.getClass(), (List) List.of(ownedResourceB));
     }
 
     @Test
     void shouldThrowOnUnknownResourceType() {
         // Given:
         final NullPointerException expected = new NullPointerException("unknown");
-        doThrow(expected).when(resourceCreator).ensure(any());
+        doThrow(expected).when(callbacks).ensure(any(), any());
         when(component0.resources()).thenReturn(Stream.of(sharedResource1));
 
         // When:
@@ -416,7 +492,7 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowOnInvalidComponentUsingActualValidator() {
         // Given:
-        initializer = ResourceInitializer.resourceInitializer(resourceCreator);
+        initializer = ResourceInitializer.resourceInitializer(callbacks);
 
         // Then:
         assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
