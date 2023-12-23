@@ -122,6 +122,8 @@ public final class ResourceInitializer {
      * @param components components to search for resources.
      */
     public void init(final Collection<? extends ComponentDescriptor> components) {
+        components.forEach(componentValidator::validate);
+
         LOGGER.debug(
                 "Initializing resources",
                 log -> log.with("stage", "init").with("components", componentNames(components)));
@@ -129,7 +131,8 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared)));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared),
+                        false));
     }
 
     /**
@@ -140,6 +143,8 @@ public final class ResourceInitializer {
      * @param components components to search for resources.
      */
     public void service(final Collection<? extends ComponentDescriptor> components) {
+        components.forEach(componentValidator::validate);
+
         LOGGER.debug(
                 "Initializing resources",
                 log -> log.with("stage", "service").with("components", componentNames(components)));
@@ -147,7 +152,8 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned)));
+                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned),
+                        true));
     }
 
     /**
@@ -163,6 +169,8 @@ public final class ResourceInitializer {
     public void test(
             final Collection<? extends ComponentDescriptor> componentsUnderTest,
             final Collection<? extends ComponentDescriptor> otherComponents) {
+        componentsUnderTest.forEach(componentValidator::validate);
+        otherComponents.forEach(componentValidator::validate);
 
         LOGGER.debug(
                 "Initializing resources",
@@ -177,12 +185,14 @@ public final class ResourceInitializer {
                                 resGroup ->
                                         resGroup.stream().anyMatch(ResourceDescriptor::isUnowned)
                                                 && resGroup.stream()
-                                                        .noneMatch(ResourceDescriptor::isOwned))
+                                                        .noneMatch(ResourceDescriptor::isOwned),
+                                true)
                         .collect(Collectors.toMap(group -> group.get(0).id(), Function.identity()));
 
         groupById(
                         otherComponents,
-                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())))
+                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())),
+                        false)
                 .forEach(resGroup -> unowned.get(resGroup.get(0).id()).addAll(resGroup));
 
         ensureResources(unowned.values().stream());
@@ -211,18 +221,21 @@ public final class ResourceInitializer {
 
     private Stream<List<ResourceDescriptor>> groupById(
             final Collection<? extends ComponentDescriptor> components,
-            final Predicate<List<ResourceDescriptor>> groupPredicate) {
+            final Predicate<List<ResourceDescriptor>> groupPredicate,
+            final boolean validateNonMatchingResGroups) {
         final Map<URI, List<ResourceDescriptor>> grouped =
                 components.stream()
-                        .flatMap(this::getResources)
+                        .flatMap(ComponentDescriptor::resources)
                         .collect(groupingBy(ResourceDescriptor::id));
 
-        return grouped.values().stream().filter(groupPredicate);
-    }
+        final Map<Boolean, List<List<ResourceDescriptor>>> partitioned =
+                grouped.values().stream().collect(groupingBy(groupPredicate::test));
 
-    private Stream<ResourceDescriptor> getResources(final ComponentDescriptor component) {
-        componentValidator.validate(component);
-        return component.resources();
+        if (validateNonMatchingResGroups) {
+            partitioned.getOrDefault(false, List.of()).forEach(this::validateResourceGroup);
+        }
+
+        return partitioned.getOrDefault(true, List.of()).stream();
     }
 
     /**

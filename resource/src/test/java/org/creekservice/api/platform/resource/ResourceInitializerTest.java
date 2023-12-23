@@ -131,8 +131,8 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowIfResourceGroupContainsSharedAndNonShared() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
 
         // When:
         final Exception e =
@@ -155,8 +155,8 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowIfResourceGroupContainsUnmanagedAndNonManaged() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
 
         // When:
         final Exception e =
@@ -179,8 +179,8 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowIfResourceGroupContainsOwnedAndOther() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
 
         // When:
         final Exception e =
@@ -203,8 +203,8 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowIfResourceGroupContainsUnownedAndOther() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
 
         // When:
         final Exception e =
@@ -229,8 +229,8 @@ class ResourceInitializerTest {
     void shouldCallbackValidateEachResGroupOnInit() {
         // Given:
         final ResourceA sharedResource2 = resourceA(1, SharedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource2));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(sharedResource2));
 
         // When:
         initializer.init(List.of(component0, component1));
@@ -246,13 +246,20 @@ class ResourceInitializerTest {
     @Test
     void shouldCallbackValidateEachResGroupOnService() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        when(unmanagedResource1.id()).thenReturn(URI.create("a://diff"));
+        when(component0.resources())
+                .thenAnswer(inv -> Stream.of(ownedResource1, unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
 
         // When:
         initializer.service(List.of(component0, component1));
 
         // Then:
+        verify(callbacks)
+                .validate(
+                        (Class<ResourceA>) unmanagedResource1.getClass(),
+                        List.of(unmanagedResource1));
+
         verify(callbacks)
                 .validate(
                         (Class<ResourceA>) ownedResource1.getClass(),
@@ -263,13 +270,20 @@ class ResourceInitializerTest {
     @Test
     void shouldCallbackValidateEachResGroupOnTest() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(ownedResource1));
+        when(unmanagedResource1.id()).thenReturn(URI.create("a://diff"));
+        when(component0.resources())
+                .thenAnswer(inv -> Stream.of(unownedResource1, unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
 
         // When:
         initializer.test(List.of(component0), List.of(component1));
 
         // Then:
+        verify(callbacks)
+                .validate(
+                        (Class<ResourceA>) unmanagedResource1.getClass(),
+                        List.of(unmanagedResource1));
+
         verify(callbacks)
                 .validate(
                         (Class<ResourceA>) unownedResource1.getClass(),
@@ -279,8 +293,8 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowIfValidateCallbackThrows() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
         final RuntimeException expected = new RuntimeException("BIG BADA BOOM");
         doThrow(expected).when(callbacks).validate(any(), any());
 
@@ -297,8 +311,9 @@ class ResourceInitializerTest {
     @Test
     void shouldNotInitializeAnyResourceOnInitIfNoSharedResources() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1, unmanagedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unownedResource1));
+        when(component0.resources())
+                .thenAnswer(inv -> Stream.of(ownedResource1, unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
 
         // When:
         initializer.init(List.of(component0, component1));
@@ -312,8 +327,8 @@ class ResourceInitializerTest {
         // Given:
         final ResourceA shared = resourceA(2, SharedResource.class);
         final ResourceA unowned = resourceA(3, UnownedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(shared, unmanagedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unowned));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(shared, unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unowned));
 
         // When:
         initializer.service(List.of(component0, component1));
@@ -328,9 +343,9 @@ class ResourceInitializerTest {
         final ResourceA shared = resourceA(2, SharedResource.class);
         final ResourceA unowned = resourceA(3, UnownedResource.class);
         final ResourceA owned = resourceA(4, OwnedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1, shared));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unmanagedResource1, shared));
         when(component1.resources())
-                .thenReturn(Stream.of(unmanagedResource1, shared, unowned, owned));
+                .thenAnswer(inv -> Stream.of(unmanagedResource1, shared, unowned, owned));
 
         // When:
         initializer.test(List.of(component0), List.of(component1));
@@ -343,8 +358,8 @@ class ResourceInitializerTest {
     void
             shouldNotInitializeAnyResourcesOnTestIfUnownedResourcesHaveOwnedDescriptorInComponentsUnderTest() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(ownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
 
         // When:
         initializer.test(List.of(component0, component1), List.of());
@@ -359,8 +374,8 @@ class ResourceInitializerTest {
         final ResourceDescriptor unmanagedResource1b = mock(ResourceDescriptor.class);
         when(unmanagedResource1b.id()).thenReturn(A1_ID);
 
-        when(component0.resources()).thenReturn(Stream.of(unmanagedResource1));
-        when(component1.resources()).thenReturn(Stream.of(unmanagedResource1b));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unmanagedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(unmanagedResource1b));
 
         // When:
         initializer.init(List.of(component0, component1));
@@ -372,8 +387,9 @@ class ResourceInitializerTest {
     @Test
     void shouldThrowOnUncreatableResource() {
         // Given:
-        when(component0.resources()).thenReturn(Stream.of(unownedResource1));
-        when(component1.resources()).thenReturn(Stream.of()); // Missing owned resource descriptor
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
+        when(component1.resources())
+                .thenAnswer(inv -> Stream.of()); // Missing owned resource descriptor
 
         // When:
         final Exception e =
@@ -395,8 +411,8 @@ class ResourceInitializerTest {
     void shouldEnsureSharedResource() {
         // Given:
         final ResourceA sharedResource2 = resourceA(2, SharedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
-        when(component1.resources()).thenReturn(Stream.of(sharedResource2, sharedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(sharedResource2, sharedResource1));
 
         // When:
         initializer.init(List.of(component0, component1));
@@ -413,8 +429,8 @@ class ResourceInitializerTest {
     void shouldEnsureOwnedResource() {
         // Given:
         final ResourceA ownedResource2 = resourceA(2, OwnedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
-        when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource2, unownedResource1));
 
         // When:
         initializer.service(List.of(component0, component1));
@@ -432,8 +448,8 @@ class ResourceInitializerTest {
         // Given:
         final ResourceA ownedResource2 = resourceA(2, OwnedResource.class);
         final ResourceA unownedResource2 = resourceA(2, UnownedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(unownedResource2));
-        when(component1.resources()).thenReturn(Stream.of(ownedResource2, unownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unownedResource2));
+        when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource2, unownedResource1));
 
         // When:
         initializer.test(List.of(component0), List.of(component1));
@@ -447,7 +463,7 @@ class ResourceInitializerTest {
         // Given:
         final RuntimeException expected = new RuntimeException("boom");
         doThrow(expected).when(callbacks).ensure(any(), any());
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
 
         // When:
         final Exception e =
@@ -463,7 +479,7 @@ class ResourceInitializerTest {
     void shouldEnsureGroupingByHandler() {
         // Given
         final ResourceB ownedResourceB = resourceB(OwnedResource.class);
-        when(component0.resources()).thenReturn(Stream.of(ownedResource1, ownedResourceB));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1, ownedResourceB));
 
         // When:
         initializer.service(List.of(component0));
@@ -478,7 +494,7 @@ class ResourceInitializerTest {
         // Given:
         final NullPointerException expected = new NullPointerException("unknown");
         doThrow(expected).when(callbacks).ensure(any(), any());
-        when(component0.resources()).thenReturn(Stream.of(sharedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
 
         // When:
         final Exception e =
