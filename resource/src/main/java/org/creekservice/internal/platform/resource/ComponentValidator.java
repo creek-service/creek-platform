@@ -16,6 +16,7 @@
 
 package org.creekservice.internal.platform.resource;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +26,9 @@ import java.util.stream.Stream;
 import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.platform.metadata.AggregateDescriptor;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
+import org.creekservice.api.platform.metadata.CreatableResource;
 import org.creekservice.api.platform.metadata.OwnedResource;
+import org.creekservice.api.platform.metadata.ResourceCollection;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
 import org.creekservice.api.platform.metadata.ServiceDescriptor;
 import org.creekservice.api.platform.metadata.SharedResource;
@@ -63,13 +66,14 @@ public final class ComponentValidator {
             throw new InvalidDescriptorException(
                     "descriptor is neither aggregate and service descriptor", component);
         }
+
+        validateComponentResources(component);
+
         if (component instanceof AggregateDescriptor) {
             validateAggregate((AggregateDescriptor) component);
         } else {
             validateService((ServiceDescriptor) component);
         }
-
-        validateComponentResources(component);
     }
 
     private void validateComponentName(final ComponentDescriptor component) {
@@ -82,9 +86,19 @@ public final class ComponentValidator {
         }
     }
 
+    @SuppressFBWarnings(
+            value = "DCN_NULLPOINTER_EXCEPTION",
+            justification = "validator implementation")
     private void validateComponentResources(final ComponentDescriptor component) {
         validateResourcesMethod(component);
-        component.resources().forEach(r -> validateResource(r, component));
+
+        try {
+            ResourceCollection.collectResources(component)
+                    .forEach(res -> validateResource(res, component));
+        } catch (final NullPointerException e) {
+            throw new InvalidDescriptorException(
+                    "contains null resource or resource stream", component);
+        }
     }
 
     private void validateAggregate(final AggregateDescriptor component) {
@@ -96,8 +110,7 @@ public final class ComponentValidator {
         }
 
         final List<ResourceDescriptor> notOwned =
-                component
-                        .resources()
+                ResourceCollection.collectResources(component)
                         .filter(r -> !(r instanceof OwnedResource))
                         .collect(Collectors.toList());
 
@@ -132,10 +145,6 @@ public final class ComponentValidator {
 
     private void validateResource(
             final ResourceDescriptor resource, final ComponentDescriptor component) {
-        if (resource == null) {
-            throw new InvalidDescriptorException("contains null resource", component);
-        }
-
         if (resource.id() == null) {
             throw new InvalidDescriptorException(
                     "null resource id, resource_type: " + resource.getClass().getSimpleName(),
@@ -144,22 +153,35 @@ public final class ComponentValidator {
 
         final List<String> initialisation =
                 types(resource.getClass())
-                        .filter(ComponentValidator::isResourceInitializationMarkerInterface)
+                        .filter(ComponentValidator::isResourceInitializationInterface)
                         .map(Class::getSimpleName)
                         .distinct()
                         .sorted()
                         .collect(Collectors.toList());
         if (initialisation.size() > 1) {
             throw new InvalidDescriptorException(
-                    "resource can implement at-most one ResourceInitialization marker interface,"
+                    "resource can implement at-most one resource initialization interface,"
                             + " but was: "
                             + initialisation,
                     resource,
                     component);
         }
+
+        if (resource instanceof CreatableResource
+                && !(resource instanceof SharedResource)
+                && !(resource instanceof OwnedResource)) {
+            throw new InvalidDescriptorException(
+                    "creatable resource must implement either the "
+                            + SharedResource.class.getSimpleName()
+                            + " or the "
+                            + OwnedResource.class.getSimpleName()
+                            + " interface",
+                    resource,
+                    component);
+        }
     }
 
-    private static boolean isResourceInitializationMarkerInterface(final Class<?> type) {
+    private static boolean isResourceInitializationInterface(final Class<?> type) {
         return type == OwnedResource.class
                 || type == UnownedResource.class
                 || type == SharedResource.class;

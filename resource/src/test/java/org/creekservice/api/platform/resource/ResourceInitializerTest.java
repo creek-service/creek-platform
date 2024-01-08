@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -42,6 +43,7 @@ import org.creekservice.internal.platform.resource.ComponentValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -145,9 +147,9 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "Resource descriptors for resource are tagged with incompatible resource"
-                            + " initialization marker interfaces. First descriptor is marked as a"
-                            + " shared resource, but at least one subsequent descriptor was not"
-                            + " shared. resource: a://1, descriptors: "));
+                                + " initialization interfaces. First descriptor is marked as a"
+                                + " shared resource, but at least one subsequent descriptor was not"
+                                + " shared. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("sharedResource1"));
         assertThat(e.getMessage(), containsString("unownedResource1"));
     }
@@ -169,7 +171,7 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "Resource descriptors for resource are tagged with incompatible resource"
-                            + " initialization marker interfaces. First descriptor is marked as a"
+                            + " initialization interfaces. First descriptor is marked as a"
                             + " unmanaged resource, but at least one subsequent descriptor was not"
                             + " unmanaged. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("unmanagedResource1"));
@@ -193,9 +195,9 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "Resource descriptors for resource are tagged with incompatible resource"
-                            + " initialization marker interfaces. First descriptor is marked as a"
-                            + " owned or unowned resource, but at least one subsequent descriptor"
-                            + " was not owned or unowned. resource: a://1, descriptors: "));
+                            + " initialization interfaces. First descriptor is marked as a owned or"
+                            + " unowned resource, but at least one subsequent descriptor was not"
+                            + " owned or unowned. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("ownedResource1"));
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
@@ -217,9 +219,9 @@ class ResourceInitializerTest {
                 e.getMessage(),
                 startsWith(
                         "Resource descriptors for resource are tagged with incompatible resource"
-                            + " initialization marker interfaces. First descriptor is marked as a"
-                            + " owned or unowned resource, but at least one subsequent descriptor"
-                            + " was not owned or unowned. resource: a://1, descriptors: "));
+                            + " initialization interfaces. First descriptor is marked as a owned or"
+                            + " unowned resource, but at least one subsequent descriptor was not"
+                            + " owned or unowned. resource: a://1, descriptors: "));
         assertThat(e.getMessage(), containsString("unownedResource1"));
         assertThat(e.getMessage(), containsString("sharedResource1"));
     }
@@ -512,6 +514,37 @@ class ResourceInitializerTest {
 
         // Then:
         assertThrows(RuntimeException.class, () -> initializer.init(List.of(component0)));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Test
+    void shouldEnsureChildResourcesBeforeParents() {
+        // Given
+        final ResourceB child = resourceB(OwnedResource.class);
+        when(ownedResource1.resources()).thenAnswer(inv -> Stream.of(child));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+
+        // When:
+        initializer.service(List.of(component0));
+
+        // Then:
+        final InOrder inOrder = inOrder(callbacks);
+        inOrder.verify(callbacks).ensure((Class) child.getClass(), (List) List.of(child));
+        inOrder.verify(callbacks)
+                .ensure((Class) ownedResource1.getClass(), (List) List.of(ownedResource1));
+    }
+
+    @Test
+    void shouldHandleCircularResourceReferences() {
+        // Given
+        when(ownedResource1.resources()).thenAnswer(inv -> Stream.of(unownedResource1));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1, unownedResource1));
+
+        // When:
+        initializer.service(List.of(component0));
+
+        // Then: did not throw, and:
+        verify(callbacks).ensure(any(), any());
     }
 
     private static ResourceA resourceA(final int id, final Class<?> extraInterface) {

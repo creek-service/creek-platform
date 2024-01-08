@@ -23,22 +23,19 @@ Authors of Creek based services will build implementations of both aggregate and
 
 The inputs of a component define any external resources the component consumes/reads.
 
-All input resources implement the [`ComponentInput`](src/main/java/org/creekservice/api/platform/metadata/ComponentInput.java)
-marker interface.
+All input resources implement the [`ComponentInput`](src/main/java/org/creekservice/api/platform/metadata/ComponentInput.java) interface.
 
 ### Internals
 
 The internals of a component define any external resources the component uses internally to perform its function.
 
-All internal resources implement the [`ComponentInternal`](src/main/java/org/creekservice/api/platform/metadata/ComponentInternal.java)
-marker interface.
+All internal resources implement the [`ComponentInternal`](src/main/java/org/creekservice/api/platform/metadata/ComponentInternal.java) interface.
 
 ### Outputs
 
 The outputs of a component define any external resources the component produces/writes.
 
-All output resources implement the [`ComponentOutput`](src/main/java/org/creekservice/api/platform/metadata/ComponentOutput.java)
-marker interface.
+All output resources implement the [`ComponentOutput`](src/main/java/org/creekservice/api/platform/metadata/ComponentOutput.java) interface.
 
 ### Service descriptors
 
@@ -55,10 +52,10 @@ to define their public [inputs](#inputs) and [outputs](#outputs).
 ## Resource Descriptors
 
 Resource descriptors define the resources a component uses in its [inputs](#inputs), [internals](#internals) and [outputs](#outputs).
-There are corresponding `ComponentInput`, `ComponentInternal` and `ComponentOutput` marker interfaces, respectively. 
+There are corresponding `ComponentInput`, `ComponentInternal` and `ComponentOutput` interfaces, respectively. 
 
-Authors of creek services are not expected to implement the above marker interfaces. Creek extensions, 
-(such as [creek-kafka][1]), expose their own interfaces, which extend these marker interfaces, and which can be used to 
+Authors of creek services are not expected to implement the above interfaces. Creek extensions, 
+(such as [creek-kafka][1]), expose their own interfaces, which extend these interfaces, and which can be used to 
 define a resource the component uses, e.g. a Kafka Topic.
 
 > ### NOTE
@@ -128,7 +125,7 @@ input, internal or output.
 
 ##### Unmanaged Resources
 
-Any resource descriptor that does not implement one of the resource initialization marker interfaces are deemed not 
+Any resource descriptor that does not implement one of the resource initialization interfaces are deemed not 
 to be initialized by Creek. Such resources must be initialized some other way.
 
 #### Resource deployment

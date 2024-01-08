@@ -16,5 +16,5 @@
 
 package org.creekservice.api.platform.metadata;
 
-/** Marker interface of component internals. */
+/** Base type for component internals. */
 public interface ComponentInternal extends ResourceDescriptor {}

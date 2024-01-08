@@ -17,9 +17,10 @@
 package org.creekservice.api.platform.metadata;
 
 import java.net.URI;
+import java.util.stream.Stream;
 
-/** Marker interface of resource descriptors. */
-public interface ResourceDescriptor {
+/** Base type for describing resource. */
+public interface ResourceDescriptor extends ResourceCollection {
 
     /**
      * A unique identifier for this resource.
@@ -42,50 +43,19 @@ public interface ResourceDescriptor {
     URI id();
 
     /**
-     * Determine if a resource descriptor is creatable.
+     * Additional resources this resource requires.
      *
-     * @param r the resource descriptor to check.
-     * @return {@code true} if creatable, {@code false} otherwise.
+     * @return stream of resources this resource depends on.
      */
-    static boolean isCreatable(final ResourceDescriptor r) {
-        return r instanceof CreatableResource;
-    }
-
-    /**
-     * Determine if a resource descriptor is marked owned.
-     *
-     * @param r the resource descriptor to check.
-     * @return {@code true} if creatable, {@code false} otherwise.
-     */
-    static boolean isOwned(final ResourceDescriptor r) {
-        return r instanceof OwnedResource;
-    }
-
-    /**
-     * Determine if a resource descriptor is unowned.
-     *
-     * @param r the resource descriptor to check.
-     * @return {@code true} if creatable, {@code false} otherwise.
-     */
-    static boolean isUnowned(final ResourceDescriptor r) {
-        return r instanceof UnownedResource;
-    }
-
-    /**
-     * Determine if a resource descriptor is shared.
-     *
-     * @param r the resource descriptor to check.
-     * @return {@code true} if creatable, {@code false} otherwise.
-     */
-    static boolean isShared(final ResourceDescriptor r) {
-        return r instanceof SharedResource;
+    default Stream<? extends ResourceDescriptor> resources() {
+        return Stream.of();
     }
 
     /**
      * Determine if a resource descriptor is unmanaged.
      *
      * @param r the r descriptor to check.
-     * @return {@code true} if creatable, {@code false} otherwise.
+     * @return {@code true} if unmanaged, {@code false} otherwise.
      */
     static boolean isUnmanaged(final ResourceDescriptor r) {
         return !(r instanceof SharedResource

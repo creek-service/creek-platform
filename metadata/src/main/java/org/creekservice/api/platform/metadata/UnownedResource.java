@@ -17,7 +17,7 @@
 package org.creekservice.api.platform.metadata;
 
 /**
- * Marker interface of an unowned resources.
+ * Base type for unowned resources.
  *
  * <p>A resource can conceptually be either:
  *
@@ -30,7 +30,7 @@ package org.creekservice.api.platform.metadata;
  *
  * <p>Resources should inherit <b>at most</b> one of the above interfaces.
  *
- * <p>For more information on resource initialization, see
- * https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization.
+ * <p>For more information on resource initialization, see <a
+ * href="https://github.com/creek-service/creek-platform/tree/main/metadata#resource-initialization">resource-initialization</a>
  */
-public interface UnownedResource {}
+public interface UnownedResource extends ResourceDescriptor {}
