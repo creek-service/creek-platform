@@ -16,5 +16,5 @@
 
 package org.creekservice.api.platform.metadata;
 
-/** Marker interface of component inputs. */
+/** Base type for component inputs. */
 public interface ComponentInput extends ResourceDescriptor {}

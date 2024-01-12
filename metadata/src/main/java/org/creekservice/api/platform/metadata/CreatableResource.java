@@ -16,5 +16,10 @@
 
 package org.creekservice.api.platform.metadata;
 
-/** Marker interface to indicate a resource is {@link ResourceDescriptor#isCreatable creatable}. */
-interface CreatableResource {}
+/**
+ * Base type for creatable resources.
+ *
+ * <p>Extensions should not implement this directly. Instead, implement one of this interface's
+ * subtypes, e.g. {@link OwnedResource} or {@link SharedResource}.
+ */
+public interface CreatableResource extends ResourceDescriptor {}

@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  *   <li>both of the above
  * </ul>
  */
-public interface ComponentDescriptor {
+public interface ComponentDescriptor extends ResourceCollection {
 
     /**
      * @return the unique name of the component within the platform. Can not be {@code null}, blank

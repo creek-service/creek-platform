@@ -18,13 +18,12 @@ package org.creekservice.api.platform.resource;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
-import static org.creekservice.api.platform.metadata.ResourceDescriptor.isOwned;
-import static org.creekservice.api.platform.metadata.ResourceDescriptor.isShared;
+import static java.util.stream.Collectors.toList;
 import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnmanaged;
-import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnowned;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -36,8 +35,12 @@ import org.creekservice.api.base.type.CodeLocation;
 import org.creekservice.api.observability.logging.structured.StructuredLogger;
 import org.creekservice.api.observability.logging.structured.StructuredLoggerFactory;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
+import org.creekservice.api.platform.metadata.CreatableResource;
 import org.creekservice.api.platform.metadata.OwnedResource;
+import org.creekservice.api.platform.metadata.ResourceCollection;
 import org.creekservice.api.platform.metadata.ResourceDescriptor;
+import org.creekservice.api.platform.metadata.SharedResource;
+import org.creekservice.api.platform.metadata.UnownedResource;
 import org.creekservice.internal.platform.resource.ComponentValidator;
 
 /**
@@ -88,12 +91,10 @@ public final class ResourceInitializer {
          *
          * @param type the type of the {@code creatableResources}.
          * @param creatableResources the resource instances to ensure exists and are initialized.
-         *     Resources passed will be {@link ResourceDescriptor#isCreatable creatable}.
          * @param <T> the creatable resource descriptor type
          * @throws RuntimeException on unknown resource type
          */
-        <T extends ResourceDescriptor & OwnedResource> void ensure(
-                Class<T> type, Collection<T> creatableResources);
+        <T extends CreatableResource> void ensure(Class<T> type, Collection<T> creatableResources);
     }
 
     /**
@@ -131,7 +132,7 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isShared),
+                        resGroup -> resGroup.stream().anyMatch(SharedResource.class::isInstance),
                         false));
     }
 
@@ -152,7 +153,7 @@ public final class ResourceInitializer {
         ensureResources(
                 groupById(
                         components,
-                        resGroup -> resGroup.stream().anyMatch(ResourceDescriptor::isOwned),
+                        resGroup -> resGroup.stream().anyMatch(OwnedResource.class::isInstance),
                         true));
     }
 
@@ -163,8 +164,8 @@ public final class ResourceInitializer {
      *
      * @param componentsUnderTest components that are being testing
      * @param otherComponents other components surrounding those being tested, e.g. upstream and
-     *     downstream components. These components can contain {@link ResourceDescriptor#isCreatable
-     *     creatable} resource descriptors needed to know how to create edge resources.
+     *     downstream components. These components can contain {@link CreatableResource creatable}
+     *     resource descriptors needed to know how to create edge resources.
      */
     public void test(
             final Collection<? extends ComponentDescriptor> componentsUnderTest,
@@ -183,9 +184,10 @@ public final class ResourceInitializer {
                 groupById(
                                 componentsUnderTest,
                                 resGroup ->
-                                        resGroup.stream().anyMatch(ResourceDescriptor::isUnowned)
+                                        resGroup.stream()
+                                                        .anyMatch(UnownedResource.class::isInstance)
                                                 && resGroup.stream()
-                                                        .noneMatch(ResourceDescriptor::isOwned),
+                                                        .noneMatch(OwnedResource.class::isInstance),
                                 true)
                         .collect(Collectors.toMap(group -> group.get(0).id(), Function.identity()));
 
@@ -198,23 +200,25 @@ public final class ResourceInitializer {
         ensureResources(unowned.values().stream());
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private void ensureResources(final Stream<List<ResourceDescriptor>> resGroups) {
         resGroups
                 .peek(this::validateResourceGroup)
                 .map(this::creatableDescriptor)
-                .collect(groupingBy(Object::getClass))
+                .collect(groupingBy(Object::getClass, LinkedHashMap::new, toList()))
                 .values()
-                .forEach(
-                        creatableResources ->
-                                callbacks.ensure(
-                                        (Class) creatableResources.get(0).getClass(),
-                                        (List) creatableResources));
+                .forEach(this::ensure);
     }
 
-    private ResourceDescriptor creatableDescriptor(final List<ResourceDescriptor> resGroup) {
+    @SuppressWarnings("unchecked")
+    private <T extends CreatableResource> void ensure(final List<T> creatableResources) {
+        final Class<T> type = (Class<T>) creatableResources.get(0).getClass();
+        callbacks.ensure(type, creatableResources);
+    }
+
+    private CreatableResource creatableDescriptor(final List<ResourceDescriptor> resGroup) {
         return resGroup.stream()
-                .filter(ResourceDescriptor::isCreatable)
+                .filter(CreatableResource.class::isInstance)
+                .map(CreatableResource.class::cast)
                 .findAny()
                 .orElseThrow(() -> new UncreatableResourceException(resGroup));
     }
@@ -225,8 +229,8 @@ public final class ResourceInitializer {
             final boolean validateNonMatchingResGroups) {
         final Map<URI, List<ResourceDescriptor>> grouped =
                 components.stream()
-                        .flatMap(ComponentDescriptor::resources)
-                        .collect(groupingBy(ResourceDescriptor::id));
+                        .flatMap(ResourceCollection::collectResources)
+                        .collect(groupingBy(ResourceDescriptor::id, LinkedHashMap::new, toList()));
 
         final Map<Boolean, List<List<ResourceDescriptor>>> partitioned =
                 grouped.values().stream().collect(groupingBy(groupPredicate::test));
@@ -247,9 +251,9 @@ public final class ResourceInitializer {
     @SuppressWarnings("unchecked")
     private <T extends ResourceDescriptor> void validateResourceGroup(final List<T> resourceGroup) {
         final T first = resourceGroup.get(0);
-        if (isShared(first)) {
+        if (first instanceof SharedResource) {
             // if shared, all should be shared.
-            if (resourceGroup.stream().anyMatch(r -> !isShared(r))) {
+            if (resourceGroup.stream().anyMatch(r -> !(r instanceof SharedResource))) {
                 throw new ResourceDescriptorMismatchInitializationException(
                         "shared", resourceGroup);
             }
@@ -261,7 +265,8 @@ public final class ResourceInitializer {
             }
         } else {
             // if owned/unowned mixes allowed.
-            if (resourceGroup.stream().anyMatch(r -> !(isOwned(r) || isUnowned(r)))) {
+            if (resourceGroup.stream()
+                    .anyMatch(r -> !(r instanceof OwnedResource || r instanceof UnownedResource))) {
                 throw new ResourceDescriptorMismatchInitializationException(
                         "owned or unowned", resourceGroup);
             }
@@ -303,7 +308,7 @@ public final class ResourceInitializer {
                 final String type, final List<? extends ResourceDescriptor> descriptors) {
             super(
                     "Resource descriptors for resource are tagged with incompatible resource"
-                            + " initialization marker interfaces. First descriptor is marked as a "
+                            + " initialization interfaces. First descriptor is marked as a "
                             + type
                             + " resource, "
                             + "but at least one subsequent descriptor was not "
