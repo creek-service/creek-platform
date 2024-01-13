@@ -75,7 +75,7 @@ public interface ComponentDescriptor extends ResourceCollection {
      * @return {@link Stream} of component {@link #inputs}, {@link #internals} and {@link #outputs}
      *     resources.
      */
-    default Stream<ResourceDescriptor> resources() {
+    default Stream<? extends ResourceDescriptor> resources() {
         return Stream.concat(
                 inputs().stream(), Stream.concat(internals().stream(), outputs().stream()));
     }
