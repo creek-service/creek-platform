@@ -441,7 +441,7 @@ class ComponentValidatorTest {
         }
 
         @Override
-        public Stream<ResourceDescriptor> resources() {
+        public Stream<? extends ResourceDescriptor> resources() {
             return ServiceDescriptor.super.resources();
         }
     }
