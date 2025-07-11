@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 Creek Contributors (https://github.com/creek-service)
+ * Copyright 2023-2025 Creek Contributors (https://github.com/creek-service)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ plugins {
     `creek-coverage-convention`
     `creek-publishing-convention` apply false
     `creek-sonatype-publishing-convention`
-    id("pl.allegro.tech.build.axion-release") version "1.18.16" // https://plugins.gradle.org/plugin/pl.allegro.tech.build.axion-release
+    id("pl.allegro.tech.build.axion-release") version "1.19.0" // https://plugins.gradle.org/plugin/pl.allegro.tech.build.axion-release
 }
 
 project.version = scmVersion.version
@@ -52,7 +52,7 @@ subprojects {
 
         set("log4jVersion", "2.25.0")           // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
         set("guavaVersion", "33.4.8-jre")         // https://mvnrepository.com/artifact/com.google.guava/guava
-        set("junitVersion", "5.13.0")            // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+        set("junitVersion", "5.13.3")            // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
         set("junitPioneerVersion", "2.3.0")     // https://mvnrepository.com/artifact/org.junit-pioneer/junit-pioneer
         set("mockitoVersion", "5.18.0")          // https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter
         set("hamcrestVersion", "3.0")           // https://mvnrepository.com/artifact/org.hamcrest/hamcrest-core
@@ -64,7 +64,6 @@ subprojects {
     val junitVersion: String by extra
     val junitPioneerVersion: String by extra
     val mockitoVersion: String by extra
-    val hamcrestVersion : String by extra
 
     dependencies {
         testImplementation("org.creekservice:creek-test-hamcrest:$creekVersion")
@@ -74,10 +73,8 @@ subprojects {
         testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
         testImplementation("org.junit-pioneer:junit-pioneer:$junitPioneerVersion")
         testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
-        testImplementation("org.hamcrest:hamcrest-core:$hamcrestVersion")
         testImplementation("com.google.guava:guava-testlib:$guavaVersion")
-        testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
-        testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
+        testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
         testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     }
 }
