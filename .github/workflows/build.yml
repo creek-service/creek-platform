@@ -45,6 +45,7 @@ jobs:
       - name: Build
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI_NAME: github-actions
           CI_JOB_ID: ${{ github.run_id }}
           CI_PULL_REQUEST: ${{ github.event.pull_request.number }}
