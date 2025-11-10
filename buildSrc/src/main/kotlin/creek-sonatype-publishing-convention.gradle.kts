@@ -48,6 +48,6 @@ nexusPublishing {
     }
 }
 
-tasks.named("closeStagingRepositories") {
+tasks.named("closeSonatypeStagingRepository") {
     mustRunAfter(subprojects.mapNotNull { it.tasks.findByName("publish") })
 }
