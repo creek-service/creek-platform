@@ -18,7 +18,7 @@
  * Standard configuration for Creek library publishing to Maven Central viq the portal
  *
  * <p>Versions:
- *  - 1.3: ensure `publish` runs before `closeSonatypeStagingRepository`
+ *  - 1.3: ensure `publish` runs before `closeAndReleaseStagingRepositories`
  *
  * <p>Apply this plugin only to the root project if in multi-module setup.
  *
@@ -27,10 +27,6 @@
 
 plugins {
     id("io.github.gradle-nexus.publish-plugin")
-}
-
-tasks.named("closeSonatypeStagingRepository") {
-    dependsOn("publish")
 }
 
 nexusPublishing {
@@ -50,4 +46,8 @@ nexusPublishing {
             }
         }
     }
+}
+
+tasks.named("closeStagingRepositories") {
+    mustRunAfter(subprojects.mapNotNull { it.tasks.findByName("publish") })
 }
