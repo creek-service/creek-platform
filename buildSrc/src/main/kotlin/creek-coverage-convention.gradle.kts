@@ -25,7 +25,6 @@
 plugins {
     java
     jacoco
-    id("com.github.kt3k.coveralls")
 }
 
 repositories {
@@ -61,16 +60,8 @@ val coverage = tasks.register<JacocoReport>("coverage") {
         html.required.set(true)
     }
 }
-
-coveralls {
-    sourceDirs = allprojects.flatMap{it.sourceSets.main.get().allSource.srcDirs}.map{it.toString()}
+.map{it.toString()}
     jacocoReportPath = layout.buildDirectory.file("reports/jacoco/coverage/coverage.xml")
 }
 
-tasks.coveralls {
-    group = "creek"
-    description = "Uploads the aggregated coverage report to Coveralls"
-
-    dependsOn(coverage)
-    onlyIf{System.getenv("CI") != null}
 }
