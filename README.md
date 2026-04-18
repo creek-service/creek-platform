@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Coverage Status](https://coveralls.io/repos/github/creek-service/creek-platform/badge.svg?branch=main)](https://coveralls.io/github/creek-service/creek-platform?branch=main)
+[![codecov](https://codecov.io/gh/creek-service/creek-platform/branch/main/graph/badge.svg)](https://codecov.io/gh/creek-service/creek-platform)
 [![build](https://github.com/creek-service/creek-platform/actions/workflows/build.yml/badge.svg)](https://github.com/creek-service/creek-platform/actions/workflows/build.yml)
 [![CodeQL](https://github.com/creek-service/creek-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/creek-service/creek-platform/actions/workflows/codeql.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/org.creekservice/creek-platform-metadata.svg)](https://central.sonatype.dev/search?q=creek-platform-*)
