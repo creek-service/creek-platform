@@ -19,13 +19,17 @@ package org.creekservice.api.platform.resource;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.creekservice.api.platform.metadata.ResourceDescriptor.isUnmanaged;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -121,15 +125,16 @@ public final class ResourceInitializer {
      * validated.
      *
      * @param components components to search for resources.
+     * @return the ids of resources ensured.
      */
-    public void init(final Collection<? extends ComponentDescriptor> components) {
+    public Set<URI> init(final Collection<? extends ComponentDescriptor> components) {
         components.forEach(componentValidator::validate);
 
         LOGGER.debug(
                 "Initializing resources",
                 log -> log.with("stage", "init").with("components", componentNames(components)));
 
-        ensureResources(
+        return ensureResources(
                 groupById(
                         components,
                         resGroup -> resGroup.stream().anyMatch(SharedResource.class::isInstance),
@@ -142,15 +147,16 @@ public final class ResourceInitializer {
      * <p>All resource's will have their descriptors validated.
      *
      * @param components components to search for resources.
+     * @return the ids of resources ensured.
      */
-    public void service(final Collection<? extends ComponentDescriptor> components) {
+    public Set<URI> service(final Collection<? extends ComponentDescriptor> components) {
         components.forEach(componentValidator::validate);
 
         LOGGER.debug(
                 "Initializing resources",
                 log -> log.with("stage", "service").with("components", componentNames(components)));
 
-        ensureResources(
+        return ensureResources(
                 groupById(
                         components,
                         resGroup -> resGroup.stream().anyMatch(OwnedResource.class::isInstance),
@@ -158,18 +164,22 @@ public final class ResourceInitializer {
     }
 
     /**
-     * Initialize resources that should be created during the test stage.
+     * Initialize resources for the test stage, additionally ensuring any {@code seedResourceIds}
+     * exist, regardless of ownership.
      *
-     * <p>Components under test will have all their resource descriptors validated.
-     *
-     * @param componentsUnderTest components that are being testing
+     * @param componentsUnderTest components that are being tested
      * @param otherComponents other components surrounding those being tested, e.g. upstream and
      *     downstream components. These components can contain {@link CreatableResource creatable}
      *     resource descriptors needed to know how to create edge resources.
+     * @param seedResourceIds ids of resources to ensure regardless of ownership, e.g. those
+     *     targeted by system-test seed data. Unknown ids are ignored; referenced resources (e.g. a
+     *     topic's schema) are ensured too.
+     * @return the ids of resources ensured, including any referenced, e.g. a topic's schema.
      */
-    public void test(
+    public Set<URI> test(
             final Collection<? extends ComponentDescriptor> componentsUnderTest,
-            final Collection<? extends ComponentDescriptor> otherComponents) {
+            final Collection<? extends ComponentDescriptor> otherComponents,
+            final Set<URI> seedResourceIds) {
         componentsUnderTest.forEach(componentValidator::validate);
         otherComponents.forEach(componentValidator::validate);
 
@@ -178,35 +188,55 @@ public final class ResourceInitializer {
                 log ->
                         log.with("stage", "test")
                                 .with("components_under_test", componentNames(componentsUnderTest))
-                                .with("other_components", componentNames(otherComponents)));
+                                .with("other_components", componentNames(otherComponents))
+                                .with("seed_resource_ids", seedResourceIds));
 
-        final Map<URI, List<ResourceDescriptor>> unowned =
+        final Set<URI> expandedSeedIds = expand(componentsUnderTest, seedResourceIds);
+
+        final Map<URI, List<ResourceDescriptor>> toEnsure =
                 groupById(
                                 componentsUnderTest,
                                 resGroup ->
-                                        resGroup.stream()
-                                                        .anyMatch(UnownedResource.class::isInstance)
-                                                && resGroup.stream()
-                                                        .noneMatch(OwnedResource.class::isInstance),
+                                        expandedSeedIds.contains(resGroup.get(0).id())
+                                                || unownedResource(resGroup),
                                 true)
-                        .collect(Collectors.toMap(group -> group.get(0).id(), Function.identity()));
+                        .collect(toMap(group -> group.get(0).id(), Function.identity()));
 
         groupById(
                         otherComponents,
-                        resGroup -> resGroup.stream().anyMatch(r -> unowned.containsKey(r.id())),
+                        resGroup -> resGroup.stream().anyMatch(r -> toEnsure.containsKey(r.id())),
                         false)
-                .forEach(resGroup -> unowned.get(resGroup.get(0).id()).addAll(resGroup));
+                .forEach(resGroup -> toEnsure.get(resGroup.get(0).id()).addAll(resGroup));
 
-        ensureResources(unowned.values().stream());
+        return ensureResources(toEnsure.values().stream());
     }
 
-    private void ensureResources(final Stream<List<ResourceDescriptor>> resGroups) {
-        resGroups
-                .peek(this::validateResourceGroup)
-                .map(this::creatableDescriptor)
+    private Set<URI> expand(
+            final Collection<? extends ComponentDescriptor> componentsUnderTest,
+            final Set<URI> seedResourceIds) {
+        if (seedResourceIds.isEmpty()) {
+            return seedResourceIds;
+        }
+
+        final Set<URI> expanded = new HashSet<>(seedResourceIds);
+        componentsUnderTest.stream()
+                .flatMap(ResourceCollection::collectResources)
+                .filter(r -> seedResourceIds.contains(r.id()))
+                .flatMap(ResourceCollection::collectResources)
+                .forEach(r -> expanded.add(r.id()));
+        return expanded;
+    }
+
+    private Set<URI> ensureResources(final Stream<List<ResourceDescriptor>> resGroups) {
+        final List<CreatableResource> creatable =
+                resGroups.peek(this::validateResourceGroup).map(this::creatableDescriptor).toList();
+
+        creatable.stream()
                 .collect(groupingBy(Object::getClass, LinkedHashMap::new, toList()))
                 .values()
                 .forEach(this::ensure);
+
+        return creatable.stream().map(ResourceDescriptor::id).collect(toUnmodifiableSet());
     }
 
     @SuppressWarnings("unchecked")
@@ -273,6 +303,11 @@ public final class ResourceInitializer {
         }
 
         callbacks.validate((Class<T>) first.getClass(), resourceGroup);
+    }
+
+    private static boolean unownedResource(final List<ResourceDescriptor> resGroup) {
+        return resGroup.stream().anyMatch(UnownedResource.class::isInstance)
+                && resGroup.stream().noneMatch(OwnedResource.class::isInstance);
     }
 
     private static String formatResource(final List<? extends ResourceDescriptor> descriptors) {

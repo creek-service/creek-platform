@@ -33,6 +33,7 @@ import static org.mockito.Mockito.withSettings;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.creekservice.api.platform.metadata.ComponentDescriptor;
 import org.creekservice.api.platform.metadata.OwnedResource;
@@ -107,7 +108,7 @@ class ResourceInitializerTest {
     @Test
     void shouldValidateEachComponentOnTest() {
         // When:
-        initializer.test(List.of(component0), List.of(component1));
+        initializer.test(List.of(component0), List.of(component1), Set.of());
 
         // Then:
         verify(validator).validate(component0);
@@ -278,7 +279,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
 
         // When:
-        initializer.test(List.of(component0), List.of(component1));
+        initializer.test(List.of(component0), List.of(component1), Set.of());
 
         // Then:
         verify(callbacks)
@@ -350,7 +351,7 @@ class ResourceInitializerTest {
                 .thenAnswer(inv -> Stream.of(unmanagedResource1, shared, unowned, owned));
 
         // When:
-        initializer.test(List.of(component0), List.of(component1));
+        initializer.test(List.of(component0), List.of(component1), Set.of());
 
         // Then:
         verify(callbacks, never()).ensure(any(), any());
@@ -364,7 +365,7 @@ class ResourceInitializerTest {
         when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
 
         // When:
-        initializer.test(List.of(component0, component1), List.of());
+        initializer.test(List.of(component0, component1), List.of(), Set.of());
 
         // Then:
         verify(callbacks, never()).ensure(any(), any());
@@ -397,7 +398,7 @@ class ResourceInitializerTest {
         final Exception e =
                 assertThrows(
                         RuntimeException.class,
-                        () -> initializer.test(List.of(component0), List.of(component1)));
+                        () -> initializer.test(List.of(component0), List.of(component1), Set.of()));
 
         // Then:
         assertThat(
@@ -426,6 +427,18 @@ class ResourceInitializerTest {
                         (List) List.of(sharedResource1, sharedResource2));
     }
 
+    @Test
+    void shouldReturnEnsuredIdsFromInit() {
+        // Given:
+        when(component0.resources()).thenAnswer(inv -> Stream.of(sharedResource1));
+
+        // When:
+        final Set<URI> ensured = initializer.init(List.of(component0));
+
+        // Then:
+        assertThat(ensured, is(Set.of(A1_ID)));
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureOwnedResource() {
@@ -444,6 +457,18 @@ class ResourceInitializerTest {
                         (List) List.of(ownedResource1, ownedResource2));
     }
 
+    @Test
+    void shouldReturnEnsuredIdsFromService() {
+        // Given:
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+
+        // When:
+        final Set<URI> ensured = initializer.service(List.of(component0));
+
+        // Then:
+        assertThat(ensured, is(Set.of(A1_ID)));
+    }
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     void shouldEnsureUnownedResource() {
@@ -454,10 +479,57 @@ class ResourceInitializerTest {
         when(component1.resources()).thenAnswer(inv -> Stream.of(ownedResource2, unownedResource1));
 
         // When:
-        initializer.test(List.of(component0), List.of(component1));
+        initializer.test(List.of(component0), List.of(component1), Set.of());
 
         // Then:
         verify(callbacks).ensure((Class) ownedResource2.getClass(), (List) List.of(ownedResource2));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Test
+    void shouldEnsureOwnedResourceOnTestIfIdInSeedResourceIds() {
+        // Given:
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+
+        // When:
+        initializer.test(List.of(component0), List.of(), Set.of(A1_ID));
+
+        // Then:
+        verify(callbacks).ensure((Class) ownedResource1.getClass(), (List) List.of(ownedResource1));
+    }
+
+    @Test
+    void shouldIgnoreSeedResourceIdsThatDontMatchAnyKnownResource() {
+        // Given:
+        when(component0.resources()).thenAnswer(inv -> Stream.of());
+        when(component1.resources()).thenAnswer(inv -> Stream.of());
+
+        // When:
+        initializer.test(
+                List.of(component0), List.of(component1), Set.of(URI.create("a://unknown")));
+
+        // Then:
+        verify(callbacks, never()).ensure(any(), any());
+    }
+
+    @Test
+    void shouldThrowOnUncreatableSeedResource() {
+        // Given:
+        when(component0.resources()).thenAnswer(inv -> Stream.of(unmanagedResource1));
+
+        // When:
+        final Exception e =
+                assertThrows(
+                        RuntimeException.class,
+                        () -> initializer.test(List.of(component0), List.of(), Set.of(A1_ID)));
+
+        // Then:
+        assertThat(
+                e.getMessage(),
+                startsWith(
+                        "No component provided a creatable descriptor for resource id: a://1,"
+                                + " known_creatable_descriptors: "));
+        assertThat(e.getMessage(), containsString("unmanagedResource1"));
     }
 
     @Test
@@ -532,6 +604,36 @@ class ResourceInitializerTest {
         inOrder.verify(callbacks).ensure((Class) child.getClass(), (List) List.of(child));
         inOrder.verify(callbacks)
                 .ensure((Class) ownedResource1.getClass(), (List) List.of(ownedResource1));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Test
+    void shouldExpandSeedResourceIdsToIncludeChildResources() {
+        // Given: seedResourceIds contains only the parent's id, not the child's.
+        final ResourceB child = resourceB(OwnedResource.class);
+        when(ownedResource1.resources()).thenAnswer(inv -> Stream.of(child));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+
+        // When:
+        initializer.test(List.of(component0), List.of(), Set.of(A1_ID));
+
+        // Then: the child is ensured too, not just the resource the seed id names directly.
+        verify(callbacks).ensure((Class) child.getClass(), (List) List.of(child));
+        verify(callbacks).ensure((Class) ownedResource1.getClass(), (List) List.of(ownedResource1));
+    }
+
+    @Test
+    void shouldReturnEnsuredIdsFromTestIncludingExpandedChildren() {
+        // Given: seedResourceIds contains only the parent's id, not the child's.
+        final ResourceB child = resourceB(OwnedResource.class);
+        when(ownedResource1.resources()).thenAnswer(inv -> Stream.of(child));
+        when(component0.resources()).thenAnswer(inv -> Stream.of(ownedResource1));
+
+        // When:
+        final Set<URI> ensured = initializer.test(List.of(component0), List.of(), Set.of(A1_ID));
+
+        // Then:
+        assertThat(ensured, is(Set.of(A1_ID, child.id())));
     }
 
     @Test
